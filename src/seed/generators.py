@@ -235,13 +235,15 @@ def generate_kitchen_table_pauper() -> SeedDataGenerator:
 
     # Round 2
     round2 = gen.add_round(tournament, swiss, 2, time_limit_minutes=50, status="completed")
-    gen.add_match(tournament, swiss, round2, players[0], players[2], 1, 2, 0, 0)  # 2-0 winners paired
+    gen.add_match(
+        tournament, swiss, round2, players[0], players[2], 1, 2, 0, 0
+    )  # 2-0 winners paired
     gen.add_match(tournament, swiss, round2, players[4], players[7], 2, 0, 2, 0)  # 2-0 vs 1-2
     gen.add_match(tournament, swiss, round2, players[1], players[6], 3, 2, 1, 0)  # 1-2 players
     gen.add_match(tournament, swiss, round2, players[3], players[5], 4, 1, 0, 2, "Time draw")
 
     # Round 3 (current)
-    round3 = gen.add_round(tournament, swiss, 3, time_limit_minutes=50, status="active")
+    gen.add_round(tournament, swiss, 3, time_limit_minutes=50, status="active")
     # Matches not yet reported
 
     return gen
@@ -290,7 +292,7 @@ def generate_discord_swiss() -> SeedDataGenerator:
         gen.register_player(tournament, player, i + 1, status)
 
     # Create Swiss component (4 rounds for 16 players)
-    swiss = gen.add_component(
+    gen.add_component(
         tournament,
         "swiss",
         "Swiss Rounds",
@@ -372,14 +374,14 @@ def generate_multi_tcg_formats() -> SeedDataGenerator:
     gen = SeedDataGenerator()
 
     # Create venue
-    convention = gen.add_venue(
+    gen.add_venue(
         "Convention Center",
         address="456 Convention Blvd",
         description="Large tournament events"
     )
 
     # Create formats for different TCGs
-    formats = [
+    [
         # MTG Formats
         gen.add_format("Pauper", "magic_the_gathering", "constructed", "Pauper", "Pauper"),
         gen.add_format("Modern", "magic_the_gathering", "constructed", "Modern", "Modern"),
@@ -388,13 +390,15 @@ def generate_multi_tcg_formats() -> SeedDataGenerator:
 
         # Other TCGs
         gen.add_format("Pokemon Standard", "pokemon", "constructed", "Standard", "Standard"),
-        gen.add_format("Star Wars Standard", "star_wars_unlimited", "constructed", "Standard", "Standard"),
+        gen.add_format(
+            "Star Wars Standard", "star_wars_unlimited", "constructed", "Standard", "Standard"
+        ),
         gen.add_format("NFL Five Draft", "nfl_five", "limited", "Draft", "Current"),
         gen.add_format("Custom TCG", "custom_tcg", "constructed", "Standard", "Standard")
     ]
 
     # Create some players
-    players = [gen.add_player(f"Player{i}") for i in range(5)]
+    [gen.add_player(f"Player{i}") for i in range(5)]
 
     return gen
 
@@ -420,10 +424,14 @@ def generate_complete_tournament() -> SeedDataGenerator:
 
     if round3:
         round3.status = "completed"
-        gen.add_match(tournament, swiss, round3, players[0], players[4], 1, 2, 0, 0)  # Undefeated match
+        gen.add_match(
+            tournament, swiss, round3, players[0], players[4], 1, 2, 0, 0
+        )  # Undefeated match
         gen.add_match(tournament, swiss, round3, players[2], players[7], 2, 2, 1, 0)
         gen.add_match(tournament, swiss, round3, players[1], players[3], 3, 0, 2, 0)
-        gen.add_match(tournament, swiss, round3, players[5], players[6], 4, 1, 1, 1, "Draw for top 4")
+        gen.add_match(
+            tournament, swiss, round3, players[5], players[6], 4, 1, 1, 1, "Draw for top 4"
+        )
 
     # Create Top 4 elimination
     top4 = gen.add_component(
@@ -441,7 +449,9 @@ def generate_complete_tournament() -> SeedDataGenerator:
 
     # Finals
     finals = gen.add_round(tournament, top4, 2, time_limit_minutes=60, status="completed")
-    gen.add_match(tournament, top4, finals, players[0], players[2], 1, 2, 1, 0, "Championship match!")
+    gen.add_match(
+        tournament, top4, finals, players[0], players[2], 1, 2, 1, 0, "Championship match!"
+    )
 
     # Mark tournament complete
     tournament.status = "completed"
