@@ -1,0 +1,18 @@
+Metadata-Version: 2.1
+Name: tournament-director
+Version: 0.1.0
+Summary: A Terminal User Interface for tournament management across multiple Trading Card Games
+Author-email: Andrew Potozniak <tyraziel@gmail.com>
+License: MIT
+Requires-Python: >=3.8
+Description-Content-Type: text/markdown
+License-File: LICENSE
+License-File: LICENSE-VCL
+Requires-Dist: pydantic>=2.8.0
+Requires-Dist: textual>=0.80.0
+Provides-Extra: dev
+Requires-Dist: pytest>=8.3.0; extra == "dev"
+Requires-Dist: pytest-asyncio>=0.23.0; extra == "dev"
+Requires-Dist: ruff>=0.6.0; extra == "dev"
+Requires-Dist: mypy>=1.11.0; extra == "dev"
+Requires-Dist: tox>=4.16.0; extra == "dev"
