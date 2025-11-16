@@ -6,19 +6,13 @@ AIA PAI Hin R Claude Code v1.0
 from typing import Optional
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel
 
 from .base import BaseFormat, GameSystem
 
 
 class Format(BaseModel):
     """Tournament format definition."""
-
-    model_config = ConfigDict(
-        json_encoders={
-            UUID: str,
-        }
-    )
 
     id: UUID
     name: str

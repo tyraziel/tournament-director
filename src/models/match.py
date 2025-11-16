@@ -7,20 +7,13 @@ from datetime import datetime, timezone
 from typing import Optional
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, Field
 
 from .base import ComponentStatus, ComponentType, RoundStatus
 
 
 class Component(BaseModel):
     """Tournament component (Swiss, Elimination, etc.)."""
-
-    model_config = ConfigDict(
-        json_encoders={
-            datetime: lambda v: v.isoformat(),
-            UUID: str,
-        }
-    )
 
     id: UUID
     tournament_id: UUID
@@ -34,13 +27,6 @@ class Component(BaseModel):
 
 class Round(BaseModel):
     """Tournament round within a component."""
-
-    model_config = ConfigDict(
-        json_encoders={
-            datetime: lambda v: v.isoformat(),
-            UUID: str,
-        }
-    )
 
     id: UUID
     tournament_id: UUID
@@ -57,13 +43,6 @@ class Round(BaseModel):
 
 class Match(BaseModel):
     """Individual match between players."""
-
-    model_config = ConfigDict(
-        json_encoders={
-            datetime: lambda v: v.isoformat(),
-            UUID: str,
-        }
-    )
 
     id: UUID
     tournament_id: UUID

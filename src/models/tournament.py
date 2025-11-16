@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 from typing import Optional
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, Field
 
 from .base import PlayerStatus, TournamentStatus, TournamentVisibility
 
@@ -27,13 +27,6 @@ class RegistrationControl(BaseModel):
 class Tournament(BaseModel):
     """Tournament definition and metadata."""
 
-    model_config = ConfigDict(
-        json_encoders={
-            datetime: lambda v: v.isoformat(),
-            UUID: str,
-        }
-    )
-
     id: UUID
     name: str
     status: TournamentStatus = TournamentStatus.DRAFT
@@ -52,13 +45,6 @@ class Tournament(BaseModel):
 
 class TournamentRegistration(BaseModel):
     """Player registration for a tournament."""
-
-    model_config = ConfigDict(
-        json_encoders={
-            datetime: lambda v: v.isoformat(),
-            UUID: str,
-        }
-    )
 
     id: UUID
     tournament_id: UUID

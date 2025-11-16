@@ -7,18 +7,11 @@ from datetime import datetime, timezone
 from typing import Optional
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, Field
 
 
 class Player(BaseModel):
     """Global player identity across all tournaments."""
-
-    model_config = ConfigDict(
-        json_encoders={
-            datetime: lambda v: v.isoformat(),
-            UUID: str,
-        }
-    )
 
     id: UUID
     name: str
