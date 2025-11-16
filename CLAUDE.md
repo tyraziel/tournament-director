@@ -709,6 +709,174 @@ async def register_player_safely(
 
 ---
 
+## Development Environment
+
+### Database Setup
+
+Tournament Director supports multiple database backends for testing and development. The environment provides both **SQLite** and **PostgreSQL**.
+
+#### SQLite (Always Available)
+
+**Built-in Python support** - no server required:
+
+```python
+import sqlite3
+
+# File-based (persistent)
+conn = sqlite3.connect('tournament.db')
+
+# In-memory (testing)
+conn = sqlite3.connect(':memory:')
+```
+
+**For async usage with SQLAlchemy:**
+```bash
+pip install aiosqlite
+```
+
+**Connection strings:**
+```python
+# File-based
+"sqlite+aiosqlite:///tournament.db"
+
+# In-memory (tests)
+"sqlite+aiosqlite:///:memory:"
+```
+
+#### PostgreSQL (Requires Setup)
+
+PostgreSQL 16.10 is installed but **requires initialization**:
+
+**1. Initialize PostgreSQL cluster:**
+```bash
+# Create data directory
+mkdir -p /tmp/pgdata /tmp/pg_socket
+chown postgres:postgres /tmp/pgdata /tmp/pg_socket
+
+# Initialize database
+su - postgres -c "/usr/lib/postgresql/16/bin/initdb -D /tmp/pgdata"
+
+# Configure socket directory
+echo "unix_socket_directories = '/tmp/pg_socket'" >> /tmp/pgdata/postgresql.conf
+```
+
+**2. Start PostgreSQL server:**
+```bash
+su - postgres -c "/usr/lib/postgresql/16/bin/pg_ctl -D /tmp/pgdata -l /tmp/pgdata/logfile start"
+
+# Verify it's running
+su - postgres -c "/usr/lib/postgresql/16/bin/pg_ctl -D /tmp/pgdata status"
+```
+
+**3. Create database:**
+```bash
+su - postgres -c "psql -h /tmp/pg_socket -c 'CREATE DATABASE tournament_director;'"
+```
+
+**4. Install Python async PostgreSQL driver:**
+```bash
+pip install asyncpg
+```
+
+**Connection string:**
+```python
+"postgresql+asyncpg://postgres@/tournament_director?host=/tmp/pg_socket"
+```
+
+#### Required Python Database Libraries
+
+Add to `requirements.txt`:
+```txt
+# SQLite async support
+aiosqlite==0.20.0
+
+# PostgreSQL async driver
+asyncpg==0.29.0
+
+# ORM and migrations
+sqlalchemy[asyncio]==2.0.23
+alembic==1.13.1
+```
+
+#### Backend Selection
+
+The data layer abstraction allows seamless switching:
+
+```python
+from src.data.mock import MockDataLayer
+from src.data.local import LocalDataLayer
+# from src.data.database import DatabaseDataLayer  # Future implementation
+
+# Testing - in-memory
+data_layer = MockDataLayer()
+
+# Local development - JSON files
+data_layer = LocalDataLayer("./data")
+
+# Future: SQLite
+data_layer = DatabaseDataLayer("sqlite+aiosqlite:///tournament.db")
+
+# Future: PostgreSQL
+data_layer = DatabaseDataLayer("postgresql+asyncpg://postgres@/tournament_director?host=/tmp/pg_socket")
+```
+
+### Testing with Different Backends
+
+Run the same test suite across all backends:
+
+```python
+import pytest
+from src.data.mock import MockDataLayer
+from src.data.local import LocalDataLayer
+
+@pytest.fixture(params=["mock", "local"])
+async def data_layer(request, tmp_path):
+    """Parameterized fixture for testing all backends."""
+    if request.param == "mock":
+        return MockDataLayer()
+    elif request.param == "local":
+        return LocalDataLayer(str(tmp_path))
+    # Add database backends when implemented
+
+@pytest.mark.asyncio
+async def test_player_creation(data_layer):
+    """Test runs against ALL backends."""
+    player = Player(name="Alice")
+    created = await data_layer.players.create(player)
+    assert created.name == "Alice"
+```
+
+### Environment Quick Check
+
+Verify database availability:
+
+```bash
+# Check SQLite
+python3 -c "import sqlite3; print('✅ SQLite:', sqlite3.version)"
+
+# Check PostgreSQL
+su - postgres -c "/usr/lib/postgresql/16/bin/pg_ctl -D /tmp/pgdata status" 2>&1 | grep "server is running" && echo "✅ PostgreSQL running" || echo "❌ PostgreSQL not running"
+
+# Check Python libraries
+python3 -c "
+try:
+    import aiosqlite
+    print('✅ aiosqlite installed')
+except ImportError:
+    print('❌ aiosqlite not installed')
+
+try:
+    import asyncpg
+    print('✅ asyncpg installed')
+except ImportError:
+    print('❌ asyncpg not installed')
+"
+```
+
+**See `AI_ENVIRONMENT.md` for detailed setup instructions and troubleshooting.**
+
+---
+
 ## Development Workflow
 
 ### Daily Development Cycle
