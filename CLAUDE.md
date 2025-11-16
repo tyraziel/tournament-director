@@ -50,6 +50,9 @@ AI assistance was enabled. AI-generated content was reviewed and approved. The
 following model(s) or application(s) were used: Claude Code [Sonnet 4.5].
 ```
 
+**Official AIA Statement:**
+https://aiattribution.github.io/statements/AIA-EAI-Hin-R-?model=Claude%20Code%20%5BSonnet%204.5%5D-v1.0
+
 ### File Headers
 
 Every new file created with AI assistance must include:
@@ -904,7 +907,8 @@ following model(s) or application(s) were used: Claude Code [Sonnet 4.5].
 - **Ruff Documentation**: https://docs.astral.sh/ruff/
 - **MyPy Documentation**: https://mypy.readthedocs.io/
 - **TDD Best Practices**: https://testdriven.io/test-driven-development/
-- **AIA Standard**: https://github.com/aia-standard/aia
+- **AIA Standard**: https://aiattribution.github.io/
+- **Tournament Director AIA Statement**: https://aiattribution.github.io/statements/AIA-EAI-Hin-R-?model=Claude%20Code%20%5BSonnet%204.5%5D-v1.0
 
 ---
 
