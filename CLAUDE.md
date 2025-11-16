@@ -105,8 +105,9 @@ def calculate_omw_percentage(player: Player, rounds: list[Round]) -> float:
 
 #### Commit Messages
 
-All commits with AI assistance must include attribution in the commit message:
+All commits with AI assistance must include attribution and co-authorship in the commit message:
 
+**Short form (standard commits):**
 ```bash
 git commit -m "Add Swiss pairing algorithm
 
@@ -114,10 +115,13 @@ git commit -m "Add Swiss pairing algorithm
 - Added OMW% tiebreaker calculation
 - Test coverage: 92%
 
-AIA EAI Hin R Claude Code [Sonnet 4.5] v1.0"
+AIA EAI Hin R Claude Code [Sonnet 4.5] v1.0
+
+Vibe-Coder: Andrew Potozniak <vibecoder.1.z3r0@gmail.com>
+Co-authored-by: Claude Code [Sonnet 4.5] <claude@anthropic.com>"
 ```
 
-For longer commit messages with detailed explanation:
+**Long form (detailed commits with full attribution):**
 ```bash
 git commit -m "Add Swiss pairing algorithm
 
@@ -133,8 +137,15 @@ AIA Entirely AI, Human-initiated, Reviewed, Claude Code [Sonnet 4.5] v1.0
 
 This work was entirely AI-generated. AI was prompted for its contributions, or
 AI assistance was enabled. AI-generated content was reviewed and approved. The
-following model(s) or application(s) were used: Claude Code [Sonnet 4.5]."
+following model(s) or application(s) were used: Claude Code [Sonnet 4.5].
+
+Vibe-Coder: Andrew Potozniak <vibecoder.1.z3r0@gmail.com>
+Co-authored-by: Claude Code [Sonnet 4.5] <claude@anthropic.com>"
 ```
+
+**Required commit trailer lines:**
+- `Vibe-Coder: Andrew Potozniak <vibecoder.1.z3r0@gmail.com>` - Project lead attribution
+- `Co-authored-by: Claude Code [Sonnet 4.5] <claude@anthropic.com>` - AI co-authorship
 
 #### Session Tracking
 
@@ -932,7 +943,10 @@ except ImportError:
    - Added OMW% tiebreaker calculation
    - Test coverage: 92%
 
-   AIA EAI Hin R Claude Code [Sonnet 4.5] v1.0"
+   AIA EAI Hin R Claude Code [Sonnet 4.5] v1.0
+
+   Vibe-Coder: Andrew Potozniak <vibecoder.1.z3r0@gmail.com>
+   Co-authored-by: Claude Code [Sonnet 4.5] <claude@anthropic.com>"
    ```
 
 9. **Push and create PR**
@@ -1041,6 +1055,9 @@ Subject line
 Body describing changes.
 
 AIA EAI Hin R Claude Code [Sonnet 4.5] v1.0
+
+Vibe-Coder: Andrew Potozniak <vibecoder.1.z3r0@gmail.com>
+Co-authored-by: Claude Code [Sonnet 4.5] <claude@anthropic.com>
 ```
 
 **Commit message (long form with full attribution):**
@@ -1054,6 +1071,9 @@ AIA Entirely AI, Human-initiated, Reviewed, Claude Code [Sonnet 4.5] v1.0
 This work was entirely AI-generated. AI was prompted for its contributions, or
 AI assistance was enabled. AI-generated content was reviewed and approved. The
 following model(s) or application(s) were used: Claude Code [Sonnet 4.5].
+
+Vibe-Coder: Andrew Potozniak <vibecoder.1.z3r0@gmail.com>
+Co-authored-by: Claude Code [Sonnet 4.5] <claude@anthropic.com>
 ```
 
 ---
