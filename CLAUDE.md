@@ -1,6 +1,6 @@
 # Claude.md - AI Development Guidelines
 
-*AIA PAI Hin R Claude Code v1.0*
+*AIA EAI Hin R Claude Code [Sonnet 4.5] v1.0*
 
 This document provides technical guidelines for AI-assisted development on the Tournament Director project. All AI assistants (Claude, Copilot, etc.) should follow these practices to maintain code quality, test coverage, and proper attribution.
 
@@ -24,7 +24,33 @@ This document provides technical guidelines for AI-assisted development on the T
 
 All AI-generated or AI-assisted code MUST include proper attribution following the **AIA (AI Attribution) standard**.
 
-#### File Headers
+### Attribution Format
+
+**Tournament Director uses the following AIA attribution format:**
+
+#### Short Form (for file headers and inline comments):
+```
+AIA EAI Hin R Claude Code [Sonnet 4.5] v1.0
+```
+
+Where:
+- **AIA** = AI Attribution
+- **EAI** = Entirely AI-generated
+- **Hin** = Human-initiated
+- **R** = Reviewed (by human)
+- **Claude Code [Sonnet 4.5]** = The AI model/tool used
+- **v1.0** = Version number
+
+#### Long Form (for documentation and detailed attribution):
+```
+AIA Entirely AI, Human-initiated, Reviewed, Claude Code [Sonnet 4.5] v1.0
+
+This work was entirely AI-generated. AI was prompted for its contributions, or
+AI assistance was enabled. AI-generated content was reviewed and approved. The
+following model(s) or application(s) were used: Claude Code [Sonnet 4.5].
+```
+
+### File Headers
 
 Every new file created with AI assistance must include:
 
@@ -32,7 +58,7 @@ Every new file created with AI assistance must include:
 """
 Module description here.
 
-AIA: [AI Model] [Date] - [Brief description of AI contribution]
+AIA EAI Hin R Claude Code [Sonnet 4.5] v1.0
 """
 ```
 
@@ -41,8 +67,17 @@ AIA: [AI Model] [Date] - [Brief description of AI contribution]
 """
 Tournament pairing algorithms for Swiss-system tournaments.
 
-AIA: Claude Sonnet 4.5 2025-01-15 - Generated initial implementation
-AIA: Claude Sonnet 4.5 2025-01-16 - Refactored for async support
+AIA EAI Hin R Claude Code [Sonnet 4.5] v1.0
+"""
+```
+
+For files with multiple AI contributions over time:
+```python
+"""
+Tournament pairing algorithms for Swiss-system tournaments.
+
+AIA EAI Hin R Claude Code [Sonnet 4.5] v1.0 - 2025-01-15 - Initial implementation
+AIA PAI Hin R Claude Code [Sonnet 4.5] v1.0 - 2025-01-16 - Refactored for async (Partial AI)
 """
 ```
 
@@ -51,7 +86,15 @@ AIA: Claude Sonnet 4.5 2025-01-16 - Refactored for async support
 For substantial modifications (>50 lines or core logic changes), add inline attribution:
 
 ```python
-# AIA: Claude Sonnet 4.5 2025-01-15 - Implemented OMW% tiebreaker calculation
+# AIA EAI Hin R Claude Code [Sonnet 4.5] v1.0
+def calculate_omw_percentage(player: Player, rounds: list[Round]) -> float:
+    """Calculate Opponent Match Win Percentage for tiebreaker."""
+    # Implementation here
+```
+
+Or with date and description for clarity:
+```python
+# AIA EAI Hin R Claude Code [Sonnet 4.5] v1.0 - 2025-01-15 - OMW% tiebreaker implementation
 def calculate_omw_percentage(player: Player, rounds: list[Round]) -> float:
     """Calculate Opponent Match Win Percentage for tiebreaker."""
     # Implementation here
@@ -64,7 +107,30 @@ All commits with AI assistance must include attribution in the commit message:
 ```bash
 git commit -m "Add Swiss pairing algorithm
 
-AIA: Claude Sonnet 4.5 - Generated pairing logic with OMW% tiebreakers"
+- Implemented first round random pairing
+- Added OMW% tiebreaker calculation
+- Test coverage: 92%
+
+AIA EAI Hin R Claude Code [Sonnet 4.5] v1.0"
+```
+
+For longer commit messages with detailed explanation:
+```bash
+git commit -m "Add Swiss pairing algorithm
+
+Implemented Swiss-system pairing algorithm with proper tiebreakers.
+
+Features:
+- First round random pairing
+- Subsequent rounds paired by standings
+- OMW%/GW%/OGW% tiebreaker support
+- Comprehensive test coverage
+
+AIA Entirely AI, Human-initiated, Reviewed, Claude Code [Sonnet 4.5] v1.0
+
+This work was entirely AI-generated. AI was prompted for its contributions, or
+AI assistance was enabled. AI-generated content was reviewed and approved. The
+following model(s) or application(s) were used: Claude Code [Sonnet 4.5]."
 ```
 
 #### Session Tracking
@@ -98,7 +164,7 @@ Tournament Director follows **strict TDD practices**. All new features and bug f
 # tests/test_pairing.py
 def test_swiss_pairing_first_round_random():
     """Test that first round pairing is randomized."""
-    # AIA: Claude Sonnet 4.5 2025-01-15 - Created test for first round pairing
+    # AIA EAI Hin R Claude Code [Sonnet 4.5] v1.0 - Created test for first round pairing
     tournament = create_test_tournament(player_count=8)
 
     # This test WILL FAIL initially - that's expected!
@@ -123,7 +189,7 @@ Write **just enough code** to make the test pass:
 # src/pairing/swiss.py
 def swiss_pair_first_round(tournament: Tournament) -> list[Pairing]:
     """Pair players randomly for first round of Swiss."""
-    # AIA: Claude Sonnet 4.5 2025-01-15 - Minimal implementation for first round
+    # AIA EAI Hin R Claude Code [Sonnet 4.5] v1.0 - Minimal implementation for first round
     players = list(tournament.players)
     random.shuffle(players)
 
@@ -150,7 +216,7 @@ def swiss_pair_first_round(tournament: Tournament) -> list[Pairing]:
     """
     Pair players randomly for first round of Swiss.
 
-    AIA: Claude Sonnet 4.5 2025-01-15 - Refactored with validation and type safety
+    AIA EAI Hin R Claude Code [Sonnet 4.5] v1.0 - Refactored with validation and type safety
     """
     if len(tournament.players) % 2 != 0:
         raise ValueError("Tournament must have even number of players")
@@ -373,8 +439,8 @@ Refactor code when you notice:
    """
    Refactored module for clarity and performance.
 
-   AIA: Claude Sonnet 4.5 2025-01-15 - Original implementation
-   AIA: Claude Sonnet 4.5 2025-01-20 - Refactored for async/await pattern
+   AIA EAI Hin R Claude Code [Sonnet 4.5] v1.0 - 2025-01-15 - Original implementation
+   AIA PAI Hin R Claude Code [Sonnet 4.5] v1.0 - 2025-01-20 - Refactored for async/await pattern
    """
    ```
 
@@ -410,7 +476,7 @@ def test_save_player():
 # AFTER: Async refactoring
 async def save_player(player: Player) -> None:
     """Save player to JSON file asynchronously."""
-    # AIA: Claude Sonnet 4.5 2025-01-20 - Refactored to async
+    # AIA EAI Hin R Claude Code [Sonnet 4.5] v1.0 - Refactored to async
     async with aiofiles.open(f"players/{player.id}.json", "w") as f:
         await f.write(json.dumps(player.model_dump()))
 
@@ -524,7 +590,7 @@ def process_match_result(match: Match, result: MatchResult) -> None:
 # ✅ GOOD - Early returns and validation
 def process_match_result(match: Match, result: MatchResult) -> None:
     """Process and validate match result."""
-    # AIA: Claude Sonnet 4.5 2025-01-15 - Refactored for clarity
+    # AIA EAI Hin R Claude Code [Sonnet 4.5] v1.0 - Refactored for clarity
 
     if match.status != MatchStatus.IN_PROGRESS:
         raise ValueError("Match not in progress")
@@ -551,7 +617,11 @@ def process_match_result(match: Match, result: MatchResult) -> None:
 ```python
 # ✅ GOOD - Repository pattern
 async def get_player_tournaments(player_id: UUID, repo: TournamentRepository) -> list[Tournament]:
-    """Get all tournaments for a player."""
+    """
+    Get all tournaments for a player.
+
+    AIA EAI Hin R Claude Code [Sonnet 4.5] v1.0
+    """
     registrations = await repo.registrations.find_by_player(player_id)
     return [await repo.get(reg.tournament_id) for reg in registrations]
 
@@ -691,7 +761,7 @@ async def register_player_safely(
    - Added OMW% tiebreaker calculation
    - Test coverage: 92%
 
-   AIA: Claude Sonnet 4.5 2025-01-15 - Generated pairing logic and tests"
+   AIA EAI Hin R Claude Code [Sonnet 4.5] v1.0"
    ```
 
 9. **Push and create PR**
@@ -769,27 +839,50 @@ tox -e all
 
 ### AIA Attribution Templates
 
-**File header:**
+**File header (short form):**
 ```python
 """
 Module description.
 
-AIA: [Model] [Date] - [Contribution]
+AIA EAI Hin R Claude Code [Sonnet 4.5] v1.0
+"""
+```
+
+**File header (with dates for multiple contributions):**
+```python
+"""
+Module description.
+
+AIA EAI Hin R Claude Code [Sonnet 4.5] v1.0 - 2025-01-15 - Initial implementation
+AIA PAI Hin R Claude Code [Sonnet 4.5] v1.0 - 2025-01-16 - Partial refactor
 """
 ```
 
 **Inline comment:**
 ```python
-# AIA: [Model] [Date] - [Change description]
+# AIA EAI Hin R Claude Code [Sonnet 4.5] v1.0
 ```
 
-**Commit message:**
+**Commit message (short form):**
 ```
 Subject line
 
 Body describing changes.
 
-AIA: [Model] [Date] - [AI contribution]
+AIA EAI Hin R Claude Code [Sonnet 4.5] v1.0
+```
+
+**Commit message (long form with full attribution):**
+```
+Subject line
+
+Body describing changes.
+
+AIA Entirely AI, Human-initiated, Reviewed, Claude Code [Sonnet 4.5] v1.0
+
+This work was entirely AI-generated. AI was prompted for its contributions, or
+AI assistance was enabled. AI-generated content was reviewed and approved. The
+following model(s) or application(s) were used: Claude Code [Sonnet 4.5].
 ```
 
 ---
