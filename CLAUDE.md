@@ -53,6 +53,39 @@ following model(s) or application(s) were used: Claude Code [Sonnet 4.5].
 **Official AIA Statement:**
 https://aiattribution.github.io/statements/AIA-EAI-Hin-R-?model=Claude%20Code%20%5BSonnet%204.5%5D-v1.0
 
+### Using Different AI Models
+
+The examples in this document use **Claude Code [Sonnet 4.5]** as the primary AI assistant. If using a different AI model or tool, adjust the attribution accordingly:
+
+**Claude Model Variants:**
+- **Claude Sonnet 4.5** (current): `Claude Code [Sonnet 4.5]`
+- **Claude Opus 4**: `Claude Code [Opus 4]`
+- **Claude Haiku 4**: `Claude Code [Haiku 4]`
+
+**Other AI Tools:**
+- **GitHub Copilot**: `GitHub Copilot`
+- **Cursor AI**: `Cursor AI`
+- **Custom AI assistants**: Use the appropriate model name and version
+
+**Co-authorship Examples:**
+
+For Claude Opus:
+```
+Co-authored-by: Claude Code [Opus 4] <claude@anthropic.com>
+```
+
+For GitHub Copilot:
+```
+Co-authored-by: GitHub Copilot <copilot@github.com>
+```
+
+For Cursor AI:
+```
+Co-authored-by: Cursor AI <ai@cursor.sh>
+```
+
+**Important:** AI models should self-identify in their commit messages with accurate model information. Always verify the attribution matches the actual AI tool being used.
+
 ### File Headers
 
 Every new file created with AI assistance must include:
