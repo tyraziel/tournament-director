@@ -46,6 +46,8 @@ class Tournament(BaseModel):
     created_by: UUID  # Player ID of tournament organizer
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     description: Optional[str] = None
+    registration_deadline: Optional[datetime] = None
+    auto_advance_rounds: bool = False
 
 
 class TournamentRegistration(BaseModel):

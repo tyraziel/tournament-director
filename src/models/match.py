@@ -49,6 +49,9 @@ class Round(BaseModel):
     start_time: Optional[datetime] = None
     end_time: Optional[datetime] = None
     time_limit_minutes: Optional[int] = None
+    scheduled_start: Optional[datetime] = None
+    scheduled_end: Optional[datetime] = None
+    auto_advance: bool = False
     status: RoundStatus = RoundStatus.PENDING
 
 
