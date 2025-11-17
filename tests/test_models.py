@@ -225,10 +225,10 @@ class TestTournament:
 
     def test_tournament_with_auto_scheduling(self):
         """Test tournament with auto-advance and registration deadline."""
-        from datetime import datetime, timezone, timedelta
-        
+        from datetime import datetime, timedelta, timezone
+
         registration_deadline = datetime.now(timezone.utc) + timedelta(days=1)
-        
+
         tournament = Tournament(
             id=generate_uuid(),
             name="Discord Monthly Swiss",
@@ -242,7 +242,7 @@ class TestTournament:
             registration_deadline=registration_deadline,
             auto_advance_rounds=True,
         )
-        
+
         assert tournament.registration_deadline == registration_deadline
         assert tournament.auto_advance_rounds is True
 
@@ -260,7 +260,7 @@ class TestTournament:
             description="In-person draft with TO control",
             auto_advance_rounds=False,  # Manual round progression
         )
-        
+
         assert tournament.auto_advance_rounds is False
         assert tournament.registration_deadline is None
 
@@ -431,12 +431,12 @@ class TestRound:
 
     def test_scheduled_round(self):
         """Test round with scheduling information."""
-        from datetime import datetime, timezone, timedelta
-        
+        from datetime import datetime, timedelta, timezone
+
         now = datetime.now(timezone.utc)
         start_time = now + timedelta(hours=1)
         end_time = start_time + timedelta(minutes=50)
-        
+
         round_obj = Round(
             id=generate_uuid(),
             tournament_id=generate_uuid(),
@@ -448,7 +448,7 @@ class TestRound:
             auto_advance=True,
             status="pending",
         )
-        
+
         assert round_obj.scheduled_start == start_time
         assert round_obj.scheduled_end == end_time
         assert round_obj.auto_advance is True
@@ -465,7 +465,7 @@ class TestRound:
             auto_advance=False,  # Manual control
             status="active",
         )
-        
+
         assert round_obj.auto_advance is False
         assert round_obj.scheduled_start is None
         assert round_obj.scheduled_end is None
@@ -576,8 +576,8 @@ class TestModelIntegration:
 
     def test_scheduled_tournament_scenario(self):
         """Test tournament with scheduled rounds and auto-progression."""
-        from datetime import datetime, timezone, timedelta
-        
+        from datetime import datetime, timedelta, timezone
+
         # Create a Discord tournament with scheduling
         tournament = Tournament(
             id=generate_uuid(),
@@ -591,7 +591,7 @@ class TestModelIntegration:
             registration_deadline=datetime.now(timezone.utc) + timedelta(days=2),
             auto_advance_rounds=True,
         )
-        
+
         # Create Swiss component
         swiss = Component(
             id=generate_uuid(),
@@ -601,11 +601,11 @@ class TestModelIntegration:
             sequence_order=1,
             config={"rounds": 4},
         )
-        
+
         # Create scheduled round
         round1_start = datetime.now(timezone.utc) + timedelta(days=3)
         round1_end = round1_start + timedelta(days=2)
-        
+
         round1 = Round(
             id=generate_uuid(),
             tournament_id=tournament.id,
@@ -616,18 +616,18 @@ class TestModelIntegration:
             auto_advance=True,
             status="pending",
         )
-        
+
         # Verify scheduling integration
         assert tournament.auto_advance_rounds is True
         assert tournament.registration_deadline is not None
         assert round1.scheduled_start == round1_start
         assert round1.scheduled_end == round1_end
         assert round1.auto_advance is True
-        
+
     def test_mixed_scheduling_scenario(self):
         """Test tournament with both scheduled and manual rounds."""
-        from datetime import datetime, timezone, timedelta
-        
+        from datetime import datetime, timedelta, timezone
+
         # Tournament allows auto-advance but some rounds are manual
         tournament = Tournament(
             id=generate_uuid(),
@@ -640,15 +640,16 @@ class TestModelIntegration:
             created_by=generate_uuid(),
             auto_advance_rounds=True,  # Global setting
         )
-        
+
         component = Component(
             id=generate_uuid(),
             tournament_id=tournament.id,
             type="swiss",
             name="Swiss",
             sequence_order=1,
+            config={},
         )
-        
+
         # Scheduled round (follows tournament setting)
         scheduled_round = Round(
             id=generate_uuid(),
@@ -660,7 +661,7 @@ class TestModelIntegration:
             auto_advance=True,
             status="pending",
         )
-        
+
         # Manual round (overrides tournament setting)
         manual_round = Round(
             id=generate_uuid(),
@@ -670,7 +671,7 @@ class TestModelIntegration:
             auto_advance=False,  # Manual override
             status="pending",
         )
-        
+
         # Verify mixed behavior
         assert tournament.auto_advance_rounds is True
         assert scheduled_round.auto_advance is True

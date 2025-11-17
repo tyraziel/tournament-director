@@ -3,14 +3,18 @@
 AIA PAI Hin R Claude Code v1.0
 """
 
-from typing import Any, Optional
+from typing import Any, Dict, Optional
 from uuid import UUID
+
+
+# Type alias for dictionaries with string keys
+Details = Dict[str, Any]
 
 
 class DataLayerError(Exception):
     """Base exception for all data layer errors."""
 
-    def __init__(self, message: str, details: Optional[dict] = None):
+    def __init__(self, message: str, details: Optional[Details] = None):
         super().__init__(message)
         self.message = message
         self.details = details or {}
@@ -19,7 +23,7 @@ class DataLayerError(Exception):
 class NotFoundError(DataLayerError):
     """Raised when a requested entity is not found."""
 
-    def __init__(self, entity_type: str, entity_id: UUID, details: Optional[dict] = None):
+    def __init__(self, entity_type: str, entity_id: UUID, details: Optional[Details] = None):
         message = f"{entity_type} with id {entity_id} not found"
         super().__init__(message, details)
         self.entity_type = entity_type
@@ -29,7 +33,7 @@ class NotFoundError(DataLayerError):
 class DuplicateError(DataLayerError):
     """Raised when attempting to create a duplicate entity."""
 
-    def __init__(self, entity_type: str, field: str, value: Any, details: Optional[dict] = None):
+    def __init__(self, entity_type: str, field: str, value: Any, details: Optional[Details] = None):
         message = f"{entity_type} with {field}='{value}' already exists"
         super().__init__(message, details)
         self.entity_type = entity_type
@@ -40,8 +44,14 @@ class DuplicateError(DataLayerError):
 class ValidationError(DataLayerError):
     """Raised when data validation fails."""
 
-    def __init__(self, entity_type: str, field: str, value: Any, reason: str, 
-                 details: Optional[dict] = None):
+    def __init__(
+        self,
+        entity_type: str,
+        field: str,
+        value: Any,
+        reason: str,
+        details: Optional[Details] = None,
+    ):
         message = f"Validation failed for {entity_type}.{field}='{value}': {reason}"
         super().__init__(message, details)
         self.entity_type = entity_type
@@ -53,7 +63,9 @@ class ValidationError(DataLayerError):
 class IntegrityError(DataLayerError):
     """Raised when referential integrity is violated."""
 
-    def __init__(self, message: str, entity_type: str, constraint: str, details: Optional[dict] = None):
+    def __init__(
+        self, message: str, entity_type: str, constraint: str, details: Optional[Details] = None
+    ):
         super().__init__(message, details)
         self.entity_type = entity_type
         self.constraint = constraint

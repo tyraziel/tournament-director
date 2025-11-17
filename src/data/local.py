@@ -5,11 +5,15 @@ AIA PAI Hin R Claude Code v1.0
 
 import json
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Generic, List, Optional, Type, TypeVar
 from uuid import UUID
 
 import aiofiles
+from pydantic import BaseModel
 
+T = TypeVar("T", bound=BaseModel)
+
+from src.models.auth import APIKey
 from src.models.format import Format
 from src.models.match import Component, Match, Round
 from src.models.player import Player
@@ -18,6 +22,7 @@ from src.models.venue import Venue
 
 from .exceptions import DuplicateError, NotFoundError
 from .interface import (
+    APIKeyRepository,
     ComponentRepository,
     DataLayer,
     FormatRepository,
@@ -30,10 +35,10 @@ from .interface import (
 )
 
 
-class LocalJSONRepository:
+class LocalJSONRepository(Generic[T]):
     """Base class for JSON file-based repositories."""
 
-    def __init__(self, data_dir: Path, entity_name: str, model_class):
+    def __init__(self, data_dir: Path, entity_name: str, model_class: Type[T]) -> None:
         self.data_dir = data_dir
         self.entity_name = entity_name
         self.model_class = model_class
@@ -41,7 +46,7 @@ class LocalJSONRepository:
         self._data: Dict[str, dict] = {}
         self._loaded = False
 
-    async def _ensure_loaded(self):
+    async def _ensure_loaded(self) -> None:
         """Ensure data is loaded from file."""
         if self._loaded:
             return
@@ -49,7 +54,7 @@ class LocalJSONRepository:
         await self._load_from_file()
         self._loaded = True
 
-    async def _load_from_file(self):
+    async def _load_from_file(self) -> None:
         """Load data from JSON file."""
         self.data_dir.mkdir(parents=True, exist_ok=True)
 
@@ -69,7 +74,7 @@ class LocalJSONRepository:
         except (json.JSONDecodeError, FileNotFoundError):
             self._data = {}
 
-    async def _save_to_file(self):
+    async def _save_to_file(self) -> None:
         """Save data to JSON file."""
         self.data_dir.mkdir(parents=True, exist_ok=True)
 
@@ -91,7 +96,7 @@ class LocalJSONRepository:
         async with aiofiles.open(self.file_path, 'w') as f:
             await f.write(json.dumps(json_data, indent=2, default=str))
 
-    async def _get_by_id(self, entity_id: UUID):
+    async def _get_by_id(self, entity_id: UUID) -> T:
         """Get entity by ID, returning Pydantic model."""
         await self._ensure_loaded()
 
@@ -102,11 +107,11 @@ class LocalJSONRepository:
         # Convert back to Pydantic model
         return self.model_class.model_validate(self._data[entity_key])
 
-    async def _list_all(self, limit: Optional[int] = None, offset: int = 0):
+    async def _list_all(self, limit: Optional[int] = None, offset: int = 0) -> List[T]:
         """List all entities, returning Pydantic models."""
         await self._ensure_loaded()
 
-        entities = []
+        entities: List[T] = []
         for entity_data in self._data.values():
             entities.append(self.model_class.model_validate(entity_data))
 
@@ -117,32 +122,32 @@ class LocalJSONRepository:
         end_idx = offset + limit if limit else len(entities)
         return entities[offset:end_idx]
 
-    async def _create(self, entity):
+    async def _create(self, entity: T) -> T:
         """Create new entity."""
         await self._ensure_loaded()
 
-        entity_key = str(entity.id)
+        entity_key = str(entity.id)  # type: ignore[attr-defined]
         if entity_key in self._data:
-            raise DuplicateError(self.entity_name, "id", entity.id)
+            raise DuplicateError(self.entity_name, "id", entity.id)  # type: ignore[attr-defined]
 
         # Store as dict for JSON serialization
         self._data[entity_key] = entity.model_dump()
         await self._save_to_file()
         return entity
 
-    async def _update(self, entity):
+    async def _update(self, entity: T) -> T:
         """Update existing entity."""
         await self._ensure_loaded()
 
-        entity_key = str(entity.id)
+        entity_key = str(entity.id)  # type: ignore[attr-defined]
         if entity_key not in self._data:
-            raise NotFoundError(self.entity_name, entity.id)
+            raise NotFoundError(self.entity_name, entity.id)  # type: ignore[attr-defined]
 
         self._data[entity_key] = entity.model_dump()
         await self._save_to_file()
         return entity
 
-    async def _delete(self, entity_id: UUID):
+    async def _delete(self, entity_id: UUID) -> None:
         """Delete entity."""
         await self._ensure_loaded()
 
@@ -153,7 +158,7 @@ class LocalJSONRepository:
         del self._data[entity_key]
         await self._save_to_file()
 
-    async def _clear_all(self):
+    async def _clear_all(self) -> None:
         """Clear all data."""
         self._data = {}
         await self._save_to_file()
@@ -173,10 +178,10 @@ class LocalPlayerRepository(LocalJSONRepository, PlayerRepository):
             if existing_data.get('name') == player.name:
                 raise DuplicateError("Player", "name", player.name)
 
-        return await self._create(player)
+        return await self._create(player)  # type: ignore[no-any-return]
 
     async def get_by_id(self, player_id: UUID) -> Player:
-        return await self._get_by_id(player_id)
+        return await self._get_by_id(player_id)  # type: ignore[no-any-return]
 
     async def get_by_name(self, name: str) -> Optional[Player]:
         await self._ensure_loaded()
@@ -207,10 +212,67 @@ class LocalPlayerRepository(LocalJSONRepository, PlayerRepository):
             if entity_id != str(player.id) and existing_data.get('name') == player.name:
                 raise DuplicateError("Player", "name", player.name)
 
-        return await self._update(player)
+        return await self._update(player)  # type: ignore[no-any-return]
 
     async def delete(self, player_id: UUID) -> None:
         await self._delete(player_id)
+
+
+class LocalAPIKeyRepository(LocalJSONRepository, APIKeyRepository):
+    """Local JSON implementation of APIKeyRepository.
+
+    AIA EAI Hin R Claude Code [Sonnet 4.5] v1.0
+    """
+
+    def __init__(self, data_dir: Path):
+        super().__init__(data_dir, "api_keys", APIKey)
+
+    async def create(self, api_key: APIKey) -> APIKey:
+        await self._ensure_loaded()
+
+        # Check for duplicate token
+        for existing_data in self._data.values():
+            if existing_data.get('token') == api_key.token:
+                raise DuplicateError("APIKey", "token", api_key.token)
+
+        return await self._create(api_key)  # type: ignore[no-any-return]
+
+    async def get_by_id(self, api_key_id: UUID) -> APIKey:
+        return await self._get_by_id(api_key_id)  # type: ignore[no-any-return]
+
+    async def get_by_token(self, token: str) -> Optional[APIKey]:
+        await self._ensure_loaded()
+
+        for entity_data in self._data.values():
+            if entity_data.get('token') == token:
+                return APIKey.model_validate(entity_data)
+        return None
+
+    async def list_by_owner(self, player_id: UUID) -> List[APIKey]:
+        await self._ensure_loaded()
+
+        player_id_str = str(player_id)
+        api_keys = []
+        for entity_data in self._data.values():
+            if entity_data.get('created_by') == player_id_str:
+                api_keys.append(APIKey.model_validate(entity_data))
+
+        # Sort by created_at descending (newest first)
+        api_keys.sort(key=lambda k: k.created_at, reverse=True)
+        return api_keys
+
+    async def update(self, api_key: APIKey) -> APIKey:
+        await self._ensure_loaded()
+
+        # Check for duplicate token (excluding self)
+        for entity_id, existing_data in self._data.items():
+            if entity_id != str(api_key.id) and existing_data.get('token') == api_key.token:
+                raise DuplicateError("APIKey", "token", api_key.token)
+
+        return await self._update(api_key)  # type: ignore[no-any-return]
+
+    async def delete(self, api_key_id: UUID) -> None:
+        await self._delete(api_key_id)
 
 
 class LocalVenueRepository(LocalJSONRepository, VenueRepository):
@@ -220,10 +282,10 @@ class LocalVenueRepository(LocalJSONRepository, VenueRepository):
         super().__init__(data_dir, "venues", Venue)
 
     async def create(self, venue: Venue) -> Venue:
-        return await self._create(venue)
+        return await self._create(venue)  # type: ignore[no-any-return]
 
     async def get_by_id(self, venue_id: UUID) -> Venue:
-        return await self._get_by_id(venue_id)
+        return await self._get_by_id(venue_id)  # type: ignore[no-any-return]
 
     async def get_by_name(self, name: str) -> Optional[Venue]:
         await self._ensure_loaded()
@@ -239,7 +301,7 @@ class LocalVenueRepository(LocalJSONRepository, VenueRepository):
         return entities
 
     async def update(self, venue: Venue) -> Venue:
-        return await self._update(venue)
+        return await self._update(venue)  # type: ignore[no-any-return]
 
     async def delete(self, venue_id: UUID) -> None:
         await self._delete(venue_id)
@@ -261,10 +323,10 @@ class LocalFormatRepository(LocalJSONRepository, FormatRepository):
                 raise DuplicateError("Format", "name+game_system",
                                    f"{format_obj.name}+{format_obj.game_system}")
 
-        return await self._create(format_obj)
+        return await self._create(format_obj)  # type: ignore[no-any-return]
 
     async def get_by_id(self, format_id: UUID) -> Format:
-        return await self._get_by_id(format_id)
+        return await self._get_by_id(format_id)  # type: ignore[no-any-return]
 
     async def get_by_name(self, name: str, game_system: Optional[str] = None) -> Optional[Format]:
         await self._ensure_loaded()
@@ -302,7 +364,7 @@ class LocalFormatRepository(LocalJSONRepository, FormatRepository):
                 raise DuplicateError("Format", "name+game_system",
                                    f"{format_obj.name}+{format_obj.game_system}")
 
-        return await self._update(format_obj)
+        return await self._update(format_obj)  # type: ignore[no-any-return]
 
     async def delete(self, format_id: UUID) -> None:
         await self._delete(format_id)
@@ -324,10 +386,10 @@ class LocalTournamentRepository(LocalJSONRepository, TournamentRepository):
         await self._venue_repo.get_by_id(tournament.venue_id)
         await self._format_repo.get_by_id(tournament.format_id)
 
-        return await self._create(tournament)
+        return await self._create(tournament)  # type: ignore[no-any-return]
 
     async def get_by_id(self, tournament_id: UUID) -> Tournament:
-        return await self._get_by_id(tournament_id)
+        return await self._get_by_id(tournament_id)  # type: ignore[no-any-return]
 
     async def list_by_status(self, status: str) -> List[Tournament]:
         await self._ensure_loaded()
@@ -387,7 +449,7 @@ class LocalTournamentRepository(LocalJSONRepository, TournamentRepository):
         await self._venue_repo.get_by_id(tournament.venue_id)
         await self._format_repo.get_by_id(tournament.format_id)
 
-        return await self._update(tournament)
+        return await self._update(tournament)  # type: ignore[no-any-return]
 
     async def delete(self, tournament_id: UUID) -> None:
         await self._delete(tournament_id)
@@ -426,10 +488,10 @@ class LocalRegistrationRepository(LocalJSONRepository, RegistrationRepository):
                 raise DuplicateError("TournamentRegistration", "tournament+sequence_id",
                                    f"{registration.tournament_id}+{registration.sequence_id}")
 
-        return await self._create(registration)
+        return await self._create(registration)  # type: ignore[no-any-return]
 
     async def get_by_id(self, registration_id: UUID) -> TournamentRegistration:
-        return await self._get_by_id(registration_id)
+        return await self._get_by_id(registration_id)  # type: ignore[no-any-return]
 
     async def get_by_tournament_and_player(self, tournament_id: UUID, player_id: UUID) -> Optional[TournamentRegistration]:
         await self._ensure_loaded()
@@ -513,7 +575,7 @@ class LocalRegistrationRepository(LocalJSONRepository, RegistrationRepository):
                 raise DuplicateError("TournamentRegistration", "tournament+sequence_id",
                                    f"{registration.tournament_id}+{registration.sequence_id}")
 
-        return await self._update(registration)
+        return await self._update(registration)  # type: ignore[no-any-return]
 
     async def delete(self, registration_id: UUID) -> None:
         await self._delete(registration_id)
@@ -527,10 +589,10 @@ class LocalComponentRepository(LocalJSONRepository, ComponentRepository):
 
     async def create(self, component: Component) -> Component:
         await self._tournament_repo.get_by_id(component.tournament_id)  # Validate FK
-        return await self._create(component)
+        return await self._create(component)  # type: ignore[no-any-return]
 
     async def get_by_id(self, component_id: UUID) -> Component:
-        return await self._get_by_id(component_id)
+        return await self._get_by_id(component_id)  # type: ignore[no-any-return]
 
     async def list_by_tournament(self, tournament_id: UUID) -> List[Component]:
         await self._ensure_loaded()
@@ -555,7 +617,7 @@ class LocalComponentRepository(LocalJSONRepository, ComponentRepository):
         return None
 
     async def update(self, component: Component) -> Component:
-        return await self._update(component)
+        return await self._update(component)  # type: ignore[no-any-return]
 
     async def delete(self, component_id: UUID) -> None:
         await self._delete(component_id)
@@ -570,10 +632,10 @@ class LocalRoundRepository(LocalJSONRepository, RoundRepository):
     async def create(self, round_obj: Round) -> Round:
         await self._tournament_repo.get_by_id(round_obj.tournament_id)  # Validate FK
         await self._component_repo.get_by_id(round_obj.component_id)    # Validate FK
-        return await self._create(round_obj)
+        return await self._create(round_obj)  # type: ignore[no-any-return]
 
     async def get_by_id(self, round_id: UUID) -> Round:
-        return await self._get_by_id(round_id)
+        return await self._get_by_id(round_id)  # type: ignore[no-any-return]
 
     async def list_by_tournament(self, tournament_id: UUID) -> List[Round]:
         await self._ensure_loaded()
@@ -610,7 +672,7 @@ class LocalRoundRepository(LocalJSONRepository, RoundRepository):
         return None
 
     async def update(self, round_obj: Round) -> Round:
-        return await self._update(round_obj)
+        return await self._update(round_obj)  # type: ignore[no-any-return]
 
     async def delete(self, round_id: UUID) -> None:
         await self._delete(round_id)
@@ -635,10 +697,10 @@ class LocalMatchRepository(LocalJSONRepository, MatchRepository):
         if match.player2_id:  # Can be None for bye
             await self._player_repo.get_by_id(match.player2_id)
 
-        return await self._create(match)
+        return await self._create(match)  # type: ignore[no-any-return]
 
     async def get_by_id(self, match_id: UUID) -> Match:
-        return await self._get_by_id(match_id)
+        return await self._get_by_id(match_id)  # type: ignore[no-any-return]
 
     async def list_by_tournament(self, tournament_id: UUID) -> List[Match]:
         await self._ensure_loaded()
@@ -693,7 +755,7 @@ class LocalMatchRepository(LocalJSONRepository, MatchRepository):
         return matches
 
     async def update(self, match: Match) -> Match:
-        return await self._update(match)
+        return await self._update(match)  # type: ignore[no-any-return]
 
     async def delete(self, match_id: UUID) -> None:
         await self._delete(match_id)
@@ -707,6 +769,7 @@ class LocalDataLayer(DataLayer):
 
         # Initialize repositories in dependency order
         self._player_repo = LocalPlayerRepository(self.data_dir)
+        self._api_key_repo = LocalAPIKeyRepository(self.data_dir)
         self._venue_repo = LocalVenueRepository(self.data_dir)
         self._format_repo = LocalFormatRepository(self.data_dir)
         self._tournament_repo = LocalTournamentRepository(self.data_dir, self._player_repo, self._venue_repo, self._format_repo)
@@ -719,6 +782,10 @@ class LocalDataLayer(DataLayer):
     @property
     def players(self) -> PlayerRepository:
         return self._player_repo
+
+    @property
+    def api_keys(self) -> APIKeyRepository:
+        return self._api_key_repo
 
     @property
     def venues(self) -> VenueRepository:
@@ -756,6 +823,7 @@ class LocalDataLayer(DataLayer):
         # Import data in dependency order
         model_classes = {
             "players": Player,
+            "api_keys": APIKey,
             "venues": Venue,
             "formats": Format,
             "tournaments": Tournament,
@@ -767,6 +835,7 @@ class LocalDataLayer(DataLayer):
 
         repositories = {
             "players": self.players,
+            "api_keys": self.api_keys,
             "venues": self.venues,
             "formats": self.formats,
             "tournaments": self.tournaments,
@@ -783,8 +852,8 @@ class LocalDataLayer(DataLayer):
 
                 for entity_data in entity_list:
                     # Convert dict to Pydantic model
-                    entity = model_class.model_validate(entity_data)
-                    await repository.create(entity)
+                    entity = model_class.model_validate(entity_data)  # type: ignore[attr-defined]
+                    await repository.create(entity)  # type: ignore[attr-defined]
 
     async def clear_all_data(self) -> None:
         """Clear all data from the data layer."""
@@ -796,12 +865,14 @@ class LocalDataLayer(DataLayer):
         await self._tournament_repo._clear_all()
         await self._format_repo._clear_all()
         await self._venue_repo._clear_all()
+        await self._api_key_repo._clear_all()
         await self._player_repo._clear_all()
 
     async def health_check(self) -> Dict[str, Any]:
         """Perform health check and return status information."""
         # Force load all repositories to get accurate counts
         await self._player_repo._ensure_loaded()
+        await self._api_key_repo._ensure_loaded()
         await self._venue_repo._ensure_loaded()
         await self._format_repo._ensure_loaded()
         await self._tournament_repo._ensure_loaded()
@@ -816,6 +887,7 @@ class LocalDataLayer(DataLayer):
             "data_directory": str(self.data_dir.absolute()),
             "entities": {
                 "players": len(self._player_repo._data),
+                "api_keys": len(self._api_key_repo._data),
                 "venues": len(self._venue_repo._data),
                 "formats": len(self._format_repo._data),
                 "tournaments": len(self._tournament_repo._data),

@@ -6,6 +6,7 @@ AIA PAI Hin R Claude Code v1.0
 from typing import Any, Dict, List, Optional
 from uuid import UUID
 
+from src.models.auth import APIKey
 from src.models.format import Format
 from src.models.match import Component, Match, Round
 from src.models.player import Player
@@ -14,6 +15,7 @@ from src.models.venue import Venue
 
 from .exceptions import DuplicateError, NotFoundError
 from .interface import (
+    APIKeyRepository,
     ComponentRepository,
     DataLayer,
     FormatRepository,
@@ -29,7 +31,7 @@ from .interface import (
 class MockPlayerRepository(PlayerRepository):
     """Mock implementation of PlayerRepository."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._players: Dict[UUID, Player] = {}
 
     async def create(self, player: Player) -> Player:
@@ -92,7 +94,7 @@ class MockPlayerRepository(PlayerRepository):
 class MockVenueRepository(VenueRepository):
     """Mock implementation of VenueRepository."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._venues: Dict[UUID, Venue] = {}
 
     async def create(self, venue: Venue) -> Venue:
@@ -139,7 +141,7 @@ class MockVenueRepository(VenueRepository):
 class MockFormatRepository(FormatRepository):
     """Mock implementation of FormatRepository."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._formats: Dict[UUID, Format] = {}
 
     async def create(self, format_obj: Format) -> Format:
@@ -207,7 +209,12 @@ class MockFormatRepository(FormatRepository):
 class MockTournamentRepository(TournamentRepository):
     """Mock implementation of TournamentRepository."""
 
-    def __init__(self, player_repo: MockPlayerRepository, venue_repo: MockVenueRepository, format_repo: MockFormatRepository):
+    def __init__(
+        self,
+        player_repo: MockPlayerRepository,
+        venue_repo: MockVenueRepository,
+        format_repo: MockFormatRepository,
+    ) -> None:
         self._tournaments: Dict[UUID, Tournament] = {}
         self._player_repo = player_repo
         self._venue_repo = venue_repo
@@ -281,7 +288,9 @@ class MockTournamentRepository(TournamentRepository):
 class MockRegistrationRepository(RegistrationRepository):
     """Mock implementation of RegistrationRepository."""
 
-    def __init__(self, tournament_repo: MockTournamentRepository, player_repo: MockPlayerRepository):
+    def __init__(
+        self, tournament_repo: MockTournamentRepository, player_repo: MockPlayerRepository
+    ) -> None:
         self._registrations: Dict[UUID, TournamentRegistration] = {}
         self._tournament_repo = tournament_repo
         self._player_repo = player_repo
@@ -385,7 +394,7 @@ class MockRegistrationRepository(RegistrationRepository):
 # For brevity, I'll implement a basic version and we can expand later
 
 class MockComponentRepository(ComponentRepository):
-    def __init__(self, tournament_repo: MockTournamentRepository):
+    def __init__(self, tournament_repo: MockTournamentRepository) -> None:
         self._components: Dict[UUID, Component] = {}
         self._tournament_repo = tournament_repo
 
@@ -424,7 +433,9 @@ class MockComponentRepository(ComponentRepository):
 
 
 class MockRoundRepository(RoundRepository):
-    def __init__(self, tournament_repo: MockTournamentRepository, component_repo: MockComponentRepository):
+    def __init__(
+        self, tournament_repo: MockTournamentRepository, component_repo: MockComponentRepository
+    ) -> None:
         self._rounds: Dict[UUID, Round] = {}
         self._tournament_repo = tournament_repo
         self._component_repo = component_repo
@@ -470,8 +481,13 @@ class MockRoundRepository(RoundRepository):
 
 
 class MockMatchRepository(MatchRepository):
-    def __init__(self, tournament_repo: MockTournamentRepository, component_repo: MockComponentRepository,
-                 round_repo: MockRoundRepository, player_repo: MockPlayerRepository):
+    def __init__(
+        self,
+        tournament_repo: MockTournamentRepository,
+        component_repo: MockComponentRepository,
+        round_repo: MockRoundRepository,
+        player_repo: MockPlayerRepository,
+    ) -> None:
         self._matches: Dict[UUID, Match] = {}
         self._tournament_repo = tournament_repo
         self._component_repo = component_repo
@@ -532,10 +548,72 @@ class MockMatchRepository(MatchRepository):
         del self._matches[match_id]
 
 
+class MockAPIKeyRepository(APIKeyRepository):
+    """Mock implementation of APIKeyRepository."""
+
+    def __init__(self) -> None:
+        self._api_keys: Dict[UUID, APIKey] = {}
+        self._token_index: Dict[str, UUID] = {}  # token -> api_key_id
+
+    async def create(self, api_key: APIKey) -> APIKey:
+        if api_key.id in self._api_keys:
+            raise DuplicateError("APIKey", "id", api_key.id)
+
+        # Check for duplicate token
+        if api_key.token in self._token_index:
+            raise DuplicateError("APIKey", "token", api_key.token)
+
+        self._api_keys[api_key.id] = api_key
+        self._token_index[api_key.token] = api_key.id
+        return api_key
+
+    async def get_by_id(self, key_id: UUID) -> APIKey:
+        if key_id not in self._api_keys:
+            raise NotFoundError("APIKey", key_id)
+        return self._api_keys[key_id]
+
+    async def get_by_token(self, token: str) -> Optional[APIKey]:
+        key_id = self._token_index.get(token)
+        if not key_id:
+            return None
+        return self._api_keys.get(key_id)
+
+    async def list_by_owner(self, player_id: UUID) -> List[APIKey]:
+        keys = [key for key in self._api_keys.values() if key.created_by == player_id]
+        keys.sort(key=lambda k: k.created_at, reverse=True)
+        return keys
+
+    async def update(self, api_key: APIKey) -> APIKey:
+        if api_key.id not in self._api_keys:
+            raise NotFoundError("APIKey", api_key.id)
+
+        # If token changed, update index
+        old_api_key = self._api_keys[api_key.id]
+        if old_api_key.token != api_key.token:
+            # Remove old token from index
+            del self._token_index[old_api_key.token]
+            # Check for duplicate new token
+            if api_key.token in self._token_index:
+                raise DuplicateError("APIKey", "token", api_key.token)
+            # Add new token to index
+            self._token_index[api_key.token] = api_key.id
+
+        self._api_keys[api_key.id] = api_key
+        return api_key
+
+    async def delete(self, key_id: UUID) -> None:
+        if key_id not in self._api_keys:
+            raise NotFoundError("APIKey", key_id)
+
+        api_key = self._api_keys[key_id]
+        del self._token_index[api_key.token]
+        del self._api_keys[key_id]
+
+
 class MockDataLayer(DataLayer):
     """Mock implementation of the complete data layer."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         # Initialize repositories in dependency order
         self._player_repo = MockPlayerRepository()
         self._venue_repo = MockVenueRepository()
@@ -546,6 +624,7 @@ class MockDataLayer(DataLayer):
         self._round_repo = MockRoundRepository(self._tournament_repo, self._component_repo)
         self._match_repo = MockMatchRepository(self._tournament_repo, self._component_repo,
                                               self._round_repo, self._player_repo)
+        self._api_key_repo = MockAPIKeyRepository()
 
     @property
     def players(self) -> PlayerRepository:
@@ -578,6 +657,10 @@ class MockDataLayer(DataLayer):
     @property
     def matches(self) -> MatchRepository:
         return self._match_repo
+
+    @property
+    def api_keys(self) -> APIKeyRepository:
+        return self._api_key_repo
 
     async def seed_data(self, data: Dict[str, List[Dict[str, Any]]]) -> None:
         """Seed the data layer with test/demo data."""
@@ -614,8 +697,8 @@ class MockDataLayer(DataLayer):
 
                 for entity_data in entity_list:
                     # Convert dict to Pydantic model
-                    entity = model_class.model_validate(entity_data)
-                    await repository.create(entity)
+                    entity = model_class.model_validate(entity_data)  # type: ignore[attr-defined]
+                    await repository.create(entity)  # type: ignore[attr-defined]
 
     async def clear_all_data(self) -> None:
         """Clear all data from the data layer."""
