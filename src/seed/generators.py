@@ -3,7 +3,7 @@
 AIA PAI Hin R Claude Code v1.0
 """
 
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 from uuid import uuid4
 
 from src.models.format import Format
@@ -16,27 +16,31 @@ from src.models.venue import Venue
 class SeedDataGenerator:
     """Generate realistic tournament data for testing backends."""
 
-    def __init__(self):
-        self.players = {}
-        self.venues = {}
-        self.formats = {}
-        self.tournaments = {}
-        self.registrations = {}
-        self.components = {}
-        self.rounds = {}
-        self.matches = {}
+    def __init__(self) -> None:
+        self.players: Dict[Any, Player] = {}
+        self.venues: Dict[Any, Venue] = {}
+        self.formats: Dict[Any, Format] = {}
+        self.tournaments: Dict[Any, Tournament] = {}
+        self.registrations: Dict[Any, TournamentRegistration] = {}
+        self.components: Dict[Any, Component] = {}
+        self.rounds: Dict[Any, Round] = {}
+        self.matches: Dict[Any, Match] = {}
 
-    def reset(self):
+    def reset(self) -> None:
         """Clear all generated data."""
         self.__init__()
 
-    def add_player(self, name: str, discord_id: str = None, email: str = None) -> Player:
+    def add_player(
+        self, name: str, discord_id: Optional[str] = None, email: Optional[str] = None
+    ) -> Player:
         """Add a player to the seed data."""
         player = Player(id=uuid4(), name=name, discord_id=discord_id, email=email)
         self.players[player.id] = player
         return player
 
-    def add_venue(self, name: str, address: str = None, description: str = None) -> Venue:
+    def add_venue(
+        self, name: str, address: Optional[str] = None, description: Optional[str] = None
+    ) -> Venue:
         """Add a venue to the seed data."""
         venue = Venue(id=uuid4(), name=name, address=address, description=description)
         self.venues[venue.id] = venue
@@ -47,10 +51,10 @@ class SeedDataGenerator:
         name: str,
         game_system: str,
         base_format: str,
-        sub_format: str = None,
-        card_pool: str = None,
-        match_structure: str = None,
-        description: str = None,
+        sub_format: Optional[str] = None,
+        card_pool: Optional[str] = None,
+        match_structure: Optional[str] = None,
+        description: Optional[str] = None,
     ) -> Format:
         """Add a format to the seed data."""
         format_obj = Format(
@@ -74,8 +78,8 @@ class SeedDataGenerator:
         created_by: Player,
         status: str = "draft",
         visibility: str = "public",
-        description: str = None,
-        max_players: int = None,
+        description: Optional[str] = None,
+        max_players: Optional[int] = None,
     ) -> Tournament:
         """Add a tournament to the seed data."""
         tournament = Tournament(
@@ -112,7 +116,7 @@ class SeedDataGenerator:
         component_type: str,
         name: str,
         sequence_order: int,
-        config: Dict[str, Any] = None,
+        config: Optional[Dict[str, Any]] = None,
     ) -> Component:
         """Add a tournament component."""
         component = Component(
@@ -131,7 +135,7 @@ class SeedDataGenerator:
         tournament: Tournament,
         component: Component,
         round_number: int,
-        time_limit_minutes: int = None,
+        time_limit_minutes: Optional[int] = None,
         status: str = "pending",
     ) -> Round:
         """Add a tournament round."""
@@ -152,12 +156,12 @@ class SeedDataGenerator:
         component: Component,
         round_obj: Round,
         player1: Player,
-        player2: Player = None,
-        table_number: int = None,
+        player2: Optional[Player] = None,
+        table_number: Optional[int] = None,
         player1_wins: int = 0,
         player2_wins: int = 0,
         draws: int = 0,
-        notes: str = None,
+        notes: Optional[str] = None,
     ) -> Match:
         """Add a match result."""
         match = Match(

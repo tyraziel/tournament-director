@@ -4,7 +4,7 @@ AIA PAI Hin R Claude Code v1.0
 """
 
 from datetime import datetime, timezone
-from typing import Optional
+from typing import Any, Dict, Optional
 from uuid import UUID
 
 from pydantic import BaseModel, Field
@@ -21,7 +21,7 @@ class Component(BaseModel):
     name: str  # "Swiss Rounds", "Top 8", "Pool A"
     sequence_order: int  # Order within tournament (1, 2, 3...)
     status: ComponentStatus = ComponentStatus.PENDING
-    config: dict  # Component-specific configuration
+    config: Dict[str, Any]  # Component-specific configuration
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
