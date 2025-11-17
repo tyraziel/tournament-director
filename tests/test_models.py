@@ -647,6 +647,7 @@ class TestModelIntegration:
             type="swiss",
             name="Swiss",
             sequence_order=1,
+            config={},
         )
         
         # Scheduled round (follows tournament setting)
