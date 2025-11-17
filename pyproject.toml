@@ -14,7 +14,7 @@ authors = [
 ]
 readme = "README.md"
 license = {text = "MIT"}
-requires-python = ">=3.8"
+requires-python = ">=3.10"
 dependencies = [
     "pydantic>=2.8.0",
     "textual>=0.80.0",
@@ -30,7 +30,7 @@ dev = [
 ]
 
 [tool.ruff]
-target-version = "py38"
+target-version = "py310"
 line-length = 100
 exclude = [
     ".git",
@@ -71,7 +71,7 @@ quote-style = "double"
 indent-style = "space"
 
 [tool.mypy]
-python_version = "3.8"
+python_version = "3.10"
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = true
@@ -84,6 +84,10 @@ warn_unused_ignores = true
 warn_no_return = true
 warn_unreachable = true
 strict_equality = true
+
+[[tool.mypy.overrides]]
+module = ["pydantic.*", "aiofiles.*"]
+ignore_missing_imports = true
 
 [tool.mypy.exclude]
 exclude = [

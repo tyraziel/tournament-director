@@ -3,8 +3,8 @@
 AIA PAI Hin R Claude Code v1.0
 """
 
-from typing import Any, Dict, List, Optional, Union
-from uuid import uuid4
+from typing import Any
+from uuid import UUID, uuid4
 
 from src.models.base import (
     BaseFormat,
@@ -26,28 +26,28 @@ class SeedDataGenerator:
     """Generate realistic tournament data for testing backends."""
 
     def __init__(self) -> None:
-        self.players: Dict[Any, Player] = {}
-        self.venues: Dict[Any, Venue] = {}
-        self.formats: Dict[Any, Format] = {}
-        self.tournaments: Dict[Any, Tournament] = {}
-        self.registrations: Dict[Any, TournamentRegistration] = {}
-        self.components: Dict[Any, Component] = {}
-        self.rounds: Dict[Any, Round] = {}
-        self.matches: Dict[Any, Match] = {}
+        self.players: dict[UUID, Player] = {}
+        self.venues: dict[UUID, Venue] = {}
+        self.formats: dict[UUID, Format] = {}
+        self.tournaments: dict[UUID, Tournament] = {}
+        self.registrations: dict[UUID, TournamentRegistration] = {}
+        self.components: dict[UUID, Component] = {}
+        self.rounds: dict[UUID, Round] = {}
+        self.matches: dict[UUID, Match] = {}
 
     def reset(self) -> None:
         """Clear all generated data."""
-        self.players = {}
-        self.venues = {}
-        self.formats = {}
-        self.tournaments = {}
-        self.registrations = {}
-        self.components = {}
-        self.rounds = {}
-        self.matches = {}
+        self.players.clear()
+        self.venues.clear()
+        self.formats.clear()
+        self.tournaments.clear()
+        self.registrations.clear()
+        self.components.clear()
+        self.rounds.clear()
+        self.matches.clear()
 
     def add_player(
-        self, name: str, discord_id: Optional[str] = None, email: Optional[str] = None
+        self, name: str, discord_id: str | None = None, email: str | None = None
     ) -> Player:
         """Add a player to the seed data."""
         player = Player(id=uuid4(), name=name, discord_id=discord_id, email=email)
@@ -55,7 +55,7 @@ class SeedDataGenerator:
         return player
 
     def add_venue(
-        self, name: str, address: Optional[str] = None, description: Optional[str] = None
+        self, name: str, address: str | None = None, description: str | None = None
     ) -> Venue:
         """Add a venue to the seed data."""
         venue = Venue(id=uuid4(), name=name, address=address, description=description)
@@ -65,19 +65,19 @@ class SeedDataGenerator:
     def add_format(
         self,
         name: str,
-        game_system: Union[str, GameSystem],
-        base_format: Union[str, BaseFormat],
-        sub_format: Optional[str] = None,
-        card_pool: Optional[str] = None,
-        match_structure: Optional[str] = None,
-        description: Optional[str] = None,
+        game_system: GameSystem,
+        base_format: BaseFormat,
+        sub_format: str | None = None,
+        card_pool: str | None = None,
+        match_structure: str | None = None,
+        description: str | None = None,
     ) -> Format:
         """Add a format to the seed data."""
         format_obj = Format(
             id=uuid4(),
             name=name,
-            game_system=game_system,  # type: ignore[arg-type]
-            base_format=base_format,  # type: ignore[arg-type]
+            game_system=game_system,
+            base_format=base_format,
             sub_format=sub_format,
             card_pool=card_pool or name,
             match_structure=match_structure,
@@ -92,17 +92,17 @@ class SeedDataGenerator:
         format_obj: Format,
         venue: Venue,
         created_by: Player,
-        status: Union[str, TournamentStatus] = "draft",
-        visibility: Union[str, TournamentVisibility] = "public",
-        description: Optional[str] = None,
-        max_players: Optional[int] = None,
+        status: TournamentStatus = TournamentStatus.DRAFT,
+        visibility: TournamentVisibility = TournamentVisibility.PUBLIC,
+        description: str | None = None,
+        max_players: int | None = None,
     ) -> Tournament:
         """Add a tournament to the seed data."""
         tournament = Tournament(
             id=uuid4(),
             name=name,
-            status=status,  # type: ignore[arg-type]
-            visibility=visibility,  # type: ignore[arg-type]
+            status=status,
+            visibility=visibility,
             registration=RegistrationControl(max_players=max_players, allow_to_override=True),
             format_id=format_obj.id,
             venue_id=venue.id,
@@ -117,7 +117,7 @@ class SeedDataGenerator:
         tournament: Tournament,
         player: Player,
         sequence_id: int,
-        status: Union[str, PlayerStatus] = "active",
+        status: PlayerStatus = PlayerStatus.ACTIVE,
     ) -> TournamentRegistration:
         """Register a player for a tournament."""
         registration = TournamentRegistration(
@@ -125,7 +125,7 @@ class SeedDataGenerator:
             tournament_id=tournament.id,
             player_id=player.id,
             sequence_id=sequence_id,
-            status=status,  # type: ignore[arg-type]
+            status=status,
         )
         self.registrations[registration.id] = registration
         return registration
@@ -133,16 +133,16 @@ class SeedDataGenerator:
     def add_component(
         self,
         tournament: Tournament,
-        component_type: Union[str, ComponentType],
+        component_type: ComponentType,
         name: str,
         sequence_order: int,
-        config: Optional[Dict[str, Any]] = None,
+        config: dict[str, Any] | None = None,
     ) -> Component:
         """Add a tournament component."""
         component = Component(
             id=uuid4(),
             tournament_id=tournament.id,
-            type=component_type,  # type: ignore[arg-type]
+            type=component_type,
             name=name,
             sequence_order=sequence_order,
             config=config or {},
@@ -155,8 +155,8 @@ class SeedDataGenerator:
         tournament: Tournament,
         component: Component,
         round_number: int,
-        time_limit_minutes: Optional[int] = None,
-        status: Union[str, RoundStatus] = "pending",
+        time_limit_minutes: int | None = None,
+        status: RoundStatus = RoundStatus.PENDING,
     ) -> Round:
         """Add a tournament round."""
         round_obj = Round(
@@ -165,7 +165,7 @@ class SeedDataGenerator:
             component_id=component.id,
             round_number=round_number,
             time_limit_minutes=time_limit_minutes,
-            status=status,  # type: ignore[arg-type]
+            status=status,
         )
         self.rounds[round_obj.id] = round_obj
         return round_obj
@@ -176,12 +176,12 @@ class SeedDataGenerator:
         component: Component,
         round_obj: Round,
         player1: Player,
-        player2: Optional[Player] = None,
-        table_number: Optional[int] = None,
+        player2: Player | None = None,
+        table_number: int | None = None,
         player1_wins: int = 0,
         player2_wins: int = 0,
         draws: int = 0,
-        notes: Optional[str] = None,
+        notes: str | None = None,
     ) -> Match:
         """Add a match result."""
         match = Match(
@@ -201,7 +201,7 @@ class SeedDataGenerator:
         self.matches[match.id] = match
         return match
 
-    def to_dict(self) -> Dict[str, List[Dict]]:
+    def to_dict(self) -> dict[str, list[dict]]:
         """Export all seed data as serializable dictionary."""
         return {
             "players": [p.model_dump() for p in self.players.values()],
@@ -224,8 +224,8 @@ def generate_kitchen_table_pauper() -> SeedDataGenerator:
 
     pauper_format = gen.add_format(
         "Pauper",
-        game_system="magic_the_gathering",
-        base_format="constructed",
+        game_system=GameSystem.MTG,
+        base_format=BaseFormat.CONSTRUCTED,
         sub_format="Pauper",
         card_pool="Pauper",
         match_structure="BO3",
@@ -249,7 +249,7 @@ def generate_kitchen_table_pauper() -> SeedDataGenerator:
         pauper_format,
         kitchen_table,
         players[0],  # Andrew is the TO
-        status="in_progress",
+        status=TournamentStatus.IN_PROGRESS,
         description="Monthly Pauper tournament at the kitchen table",
         max_players=8,
     )
@@ -260,18 +260,22 @@ def generate_kitchen_table_pauper() -> SeedDataGenerator:
 
     # Create Swiss component (3 rounds)
     swiss = gen.add_component(
-        tournament, "swiss", "Swiss Rounds", 1, {"rounds": 3, "pairing_method": "swiss"}
+        tournament, ComponentType.SWISS, "Swiss Rounds", 1, {"rounds": 3, "pairing_method": "swiss"}
     )
 
     # Round 1
-    round1 = gen.add_round(tournament, swiss, 1, time_limit_minutes=50, status="completed")
+    round1 = gen.add_round(
+        tournament, swiss, 1, time_limit_minutes=50, status=RoundStatus.COMPLETED
+    )
     gen.add_match(tournament, swiss, round1, players[0], players[1], 1, 2, 1, 0, "Great opener!")
     gen.add_match(tournament, swiss, round1, players[2], players[3], 2, 0, 2, 0, "Quick match")
     gen.add_match(tournament, swiss, round1, players[4], players[5], 3, 2, 0, 0)
     gen.add_match(tournament, swiss, round1, players[6], players[7], 4, 1, 2, 0)
 
     # Round 2
-    round2 = gen.add_round(tournament, swiss, 2, time_limit_minutes=50, status="completed")
+    round2 = gen.add_round(
+        tournament, swiss, 2, time_limit_minutes=50, status=RoundStatus.COMPLETED
+    )
     gen.add_match(
         tournament, swiss, round2, players[0], players[2], 1, 2, 0, 0
     )  # 2-0 winners paired
@@ -280,7 +284,7 @@ def generate_kitchen_table_pauper() -> SeedDataGenerator:
     gen.add_match(tournament, swiss, round2, players[3], players[5], 4, 1, 0, 2, "Time draw")
 
     # Round 3 (current)
-    gen.add_round(tournament, swiss, 3, time_limit_minutes=50, status="active")
+    gen.add_round(tournament, swiss, 3, time_limit_minutes=50, status=RoundStatus.ACTIVE)
     # Matches not yet reported
 
     return gen
@@ -295,8 +299,8 @@ def generate_discord_swiss() -> SeedDataGenerator:
 
     standard_format = gen.add_format(
         "Standard",
-        game_system="magic_the_gathering",
-        base_format="constructed",
+        game_system=GameSystem.MTG,
+        base_format=BaseFormat.CONSTRUCTED,
         sub_format="Standard",
         card_pool="Standard",
         match_structure="BO3",
@@ -305,9 +309,9 @@ def generate_discord_swiss() -> SeedDataGenerator:
     # Create 16 players
     players = []
     for i in range(16):
-        name = f"Player{i+1}"
-        discord_id = f"player{i+1}#{1000+i}" if i % 2 == 0 else None
-        email = f"player{i+1}@example.com" if i % 3 == 0 else None
+        name = f"Player{i + 1}"
+        discord_id = f"player{i + 1}#{1000 + i}" if i % 2 == 0 else None
+        email = f"player{i + 1}@example.com" if i % 3 == 0 else None
         players.append(gen.add_player(name, discord_id, email))
 
     # Create tournament
@@ -316,18 +320,17 @@ def generate_discord_swiss() -> SeedDataGenerator:
         standard_format,
         discord_server,
         players[0],
-        status="registration_open",
+        status=TournamentStatus.REGISTRATION_OPEN,
         description="Month-long Swiss tournament on Discord",
     )
 
-    # Register players (some late entries)
+    # Register players (all active)
     for i, player in enumerate(players[:14]):
-        status = "late_entry" if i >= 12 else "active"
-        gen.register_player(tournament, player, i + 1, status)
+        gen.register_player(tournament, player, i + 1, PlayerStatus.ACTIVE)
 
     # Create Swiss component (4 rounds for 16 players)
     gen.add_component(
-        tournament, "swiss", "Swiss Rounds", 1, {"rounds": 4, "pairing_method": "swiss"}
+        tournament, ComponentType.SWISS, "Swiss Rounds", 1, {"rounds": 4, "pairing_method": "swiss"}
     )
 
     return gen
@@ -346,8 +349,8 @@ def generate_lgs_draft() -> SeedDataGenerator:
 
     draft_format = gen.add_format(
         "Draft FIN",
-        game_system="magic_the_gathering",
-        base_format="limited",
+        game_system=GameSystem.MTG,
+        base_format=BaseFormat.LIMITED,
         sub_format="Traditional Draft",
         card_pool="FIN",
         match_structure="BO3",
@@ -356,7 +359,7 @@ def generate_lgs_draft() -> SeedDataGenerator:
     # Create 12 players (pod of 8 + 4 extras)
     players = []
     for i in range(12):
-        name = f"Drafter{i+1}"
+        name = f"Drafter{i + 1}"
         players.append(gen.add_player(name))
 
     # Create tournament
@@ -365,7 +368,7 @@ def generate_lgs_draft() -> SeedDataGenerator:
         draft_format,
         lgs,
         players[0],
-        status="completed",
+        status=TournamentStatus.COMPLETED,
         description="Weekly draft pod at the LGS",
     )
 
@@ -375,13 +378,13 @@ def generate_lgs_draft() -> SeedDataGenerator:
 
     # Create Swiss component (3 rounds)
     swiss = gen.add_component(
-        tournament, "swiss", "Swiss Rounds", 1, {"rounds": 3, "pairing_method": "swiss"}
+        tournament, ComponentType.SWISS, "Swiss Rounds", 1, {"rounds": 3, "pairing_method": "swiss"}
     )
 
     # Complete all rounds with results
     for round_num in range(1, 4):
         round_obj = gen.add_round(
-            tournament, swiss, round_num, time_limit_minutes=50, status="completed"
+            tournament, swiss, round_num, time_limit_minutes=50, status=RoundStatus.COMPLETED
         )
 
         # Generate some match results
@@ -406,17 +409,27 @@ def generate_multi_tcg_formats() -> SeedDataGenerator:
     # Create formats for different TCGs
     [
         # MTG Formats
-        gen.add_format("Pauper", "magic_the_gathering", "constructed", "Pauper", "Pauper"),
-        gen.add_format("Modern", "magic_the_gathering", "constructed", "Modern", "Modern"),
-        gen.add_format("Draft FIN", "magic_the_gathering", "limited", "Traditional Draft", "FIN"),
-        gen.add_format("JumpStart J22", "magic_the_gathering", "special", "JumpStart", "J22"),
+        gen.add_format("Pauper", GameSystem.MTG, BaseFormat.CONSTRUCTED, "Pauper", "Pauper"),
+        gen.add_format("Modern", GameSystem.MTG, BaseFormat.CONSTRUCTED, "Modern", "Modern"),
+        gen.add_format("Draft FIN", GameSystem.MTG, BaseFormat.LIMITED, "Traditional Draft", "FIN"),
+        gen.add_format("JumpStart J22", GameSystem.MTG, BaseFormat.SPECIAL, "JumpStart", "J22"),
         # Other TCGs
-        gen.add_format("Pokemon Standard", "pokemon", "constructed", "Standard", "Standard"),
         gen.add_format(
-            "Star Wars Standard", "star_wars_unlimited", "constructed", "Standard", "Standard"
+            "Pokemon Standard", GameSystem.POKEMON, BaseFormat.CONSTRUCTED, "Standard", "Standard"
         ),
-        gen.add_format("NFL Five Draft", "nfl_five", "limited", "Draft", "Current"),
-        gen.add_format("Custom TCG", "custom_tcg", "constructed", "Standard", "Standard"),
+        gen.add_format(
+            "Star Wars Standard",
+            GameSystem.STAR_WARS_UNLIMITED,
+            BaseFormat.CONSTRUCTED,
+            "Standard",
+            "Standard",
+        ),
+        gen.add_format(
+            "NFL Five Draft", GameSystem.NFL_FIVE, BaseFormat.LIMITED, "Draft", "Current"
+        ),
+        gen.add_format(
+            "Custom TCG", GameSystem.CUSTOM, BaseFormat.CONSTRUCTED, "Standard", "Standard"
+        ),
     ]
 
     # Create some players
@@ -445,7 +458,7 @@ def generate_complete_tournament() -> SeedDataGenerator:
             break
 
     if round3:
-        round3.status = "completed"  # type: ignore[assignment]
+        round3.status = RoundStatus.COMPLETED
         gen.add_match(
             tournament, swiss, round3, players[0], players[4], 1, 2, 0, 0
         )  # Undefeated match
@@ -457,22 +470,26 @@ def generate_complete_tournament() -> SeedDataGenerator:
 
     # Create Top 4 elimination
     top4 = gen.add_component(
-        tournament, "single_elimination", "Top 4", 2, {"cut_size": 4, "reseed_rounds": True}
+        tournament,
+        ComponentType.SINGLE_ELIMINATION,
+        "Top 4",
+        2,
+        {"cut_size": 4, "reseed_rounds": True},
     )
 
     # Semifinals
-    semis = gen.add_round(tournament, top4, 1, time_limit_minutes=60, status="completed")
+    semis = gen.add_round(tournament, top4, 1, time_limit_minutes=60, status=RoundStatus.COMPLETED)
     gen.add_match(tournament, top4, semis, players[0], players[5], 1, 2, 0, 0, "Semifinal 1")
     gen.add_match(tournament, top4, semis, players[2], players[3], 2, 2, 1, 0, "Semifinal 2")
 
     # Finals
-    finals = gen.add_round(tournament, top4, 2, time_limit_minutes=60, status="completed")
+    finals = gen.add_round(tournament, top4, 2, time_limit_minutes=60, status=RoundStatus.COMPLETED)
     gen.add_match(
         tournament, top4, finals, players[0], players[2], 1, 2, 1, 0, "Championship match!"
     )
 
     # Mark tournament complete
-    tournament.status = "completed"  # type: ignore[assignment]
+    tournament.status = TournamentStatus.COMPLETED
 
     return gen
 

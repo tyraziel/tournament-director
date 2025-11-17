@@ -5,10 +5,13 @@ AIA PAI Hin R Claude Code v1.0
 
 import json
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Type
+from typing import Any, Dict, Generic, List, Optional, Type, TypeVar
 from uuid import UUID
 
-import aiofiles  # type: ignore[import-untyped]
+import aiofiles
+from pydantic import BaseModel
+
+T = TypeVar("T", bound=BaseModel)
 
 from src.models.auth import APIKey
 from src.models.format import Format
@@ -32,10 +35,10 @@ from .interface import (
 )
 
 
-class LocalJSONRepository:
+class LocalJSONRepository(Generic[T]):
     """Base class for JSON file-based repositories."""
 
-    def __init__(self, data_dir: Path, entity_name: str, model_class: Type[Any]) -> None:
+    def __init__(self, data_dir: Path, entity_name: str, model_class: Type[T]) -> None:
         self.data_dir = data_dir
         self.entity_name = entity_name
         self.model_class = model_class
@@ -93,7 +96,7 @@ class LocalJSONRepository:
         async with aiofiles.open(self.file_path, 'w') as f:
             await f.write(json.dumps(json_data, indent=2, default=str))
 
-    async def _get_by_id(self, entity_id: UUID) -> Any:
+    async def _get_by_id(self, entity_id: UUID) -> T:
         """Get entity by ID, returning Pydantic model."""
         await self._ensure_loaded()
 
@@ -102,15 +105,15 @@ class LocalJSONRepository:
             raise NotFoundError(self.entity_name, entity_id)
 
         # Convert back to Pydantic model
-        return self.model_class.model_validate(self._data[entity_key])  # type: ignore[no-any-return]
+        return self.model_class.model_validate(self._data[entity_key])
 
-    async def _list_all(self, limit: Optional[int] = None, offset: int = 0) -> List[Any]:
+    async def _list_all(self, limit: Optional[int] = None, offset: int = 0) -> List[T]:
         """List all entities, returning Pydantic models."""
         await self._ensure_loaded()
 
-        entities = []
+        entities: List[T] = []
         for entity_data in self._data.values():
-            entities.append(self.model_class.model_validate(entity_data))  # type: ignore[no-any-return]
+            entities.append(self.model_class.model_validate(entity_data))
 
         # Apply pagination
         if offset >= len(entities):
@@ -119,26 +122,26 @@ class LocalJSONRepository:
         end_idx = offset + limit if limit else len(entities)
         return entities[offset:end_idx]
 
-    async def _create(self, entity: Any) -> Any:
+    async def _create(self, entity: T) -> T:
         """Create new entity."""
         await self._ensure_loaded()
 
-        entity_key = str(entity.id)
+        entity_key = str(entity.id)  # type: ignore[attr-defined]
         if entity_key in self._data:
-            raise DuplicateError(self.entity_name, "id", entity.id)
+            raise DuplicateError(self.entity_name, "id", entity.id)  # type: ignore[attr-defined]
 
         # Store as dict for JSON serialization
         self._data[entity_key] = entity.model_dump()
         await self._save_to_file()
         return entity
 
-    async def _update(self, entity: Any) -> Any:
+    async def _update(self, entity: T) -> T:
         """Update existing entity."""
         await self._ensure_loaded()
 
-        entity_key = str(entity.id)
+        entity_key = str(entity.id)  # type: ignore[attr-defined]
         if entity_key not in self._data:
-            raise NotFoundError(self.entity_name, entity.id)
+            raise NotFoundError(self.entity_name, entity.id)  # type: ignore[attr-defined]
 
         self._data[entity_key] = entity.model_dump()
         await self._save_to_file()
@@ -185,7 +188,7 @@ class LocalPlayerRepository(LocalJSONRepository, PlayerRepository):
 
         for entity_data in self._data.values():
             if entity_data.get('name') == name:
-                return Player.model_validate(entity_data)  # type: ignore[no-any-return]
+                return Player.model_validate(entity_data)
         return None
 
     async def get_by_discord_id(self, discord_id: str) -> Optional[Player]:
@@ -193,11 +196,11 @@ class LocalPlayerRepository(LocalJSONRepository, PlayerRepository):
 
         for entity_data in self._data.values():
             if entity_data.get('discord_id') == discord_id:
-                return Player.model_validate(entity_data)  # type: ignore[no-any-return]
+                return Player.model_validate(entity_data)
         return None
 
     async def list_all(self, limit: Optional[int] = None, offset: int = 0) -> List[Player]:
-        entities = await self._list_all(limit, offset)  # type: ignore[no-any-return]
+        entities = await self._list_all(limit, offset)
         entities.sort(key=lambda p: p.created_at)
         return entities
 
@@ -242,7 +245,7 @@ class LocalAPIKeyRepository(LocalJSONRepository, APIKeyRepository):
 
         for entity_data in self._data.values():
             if entity_data.get('token') == token:
-                return APIKey.model_validate(entity_data)  # type: ignore[no-any-return]
+                return APIKey.model_validate(entity_data)
         return None
 
     async def list_by_owner(self, player_id: UUID) -> List[APIKey]:
@@ -252,7 +255,7 @@ class LocalAPIKeyRepository(LocalJSONRepository, APIKeyRepository):
         api_keys = []
         for entity_data in self._data.values():
             if entity_data.get('created_by') == player_id_str:
-                api_keys.append(APIKey.model_validate(entity_data))  # type: ignore[no-any-return]
+                api_keys.append(APIKey.model_validate(entity_data))
 
         # Sort by created_at descending (newest first)
         api_keys.sort(key=lambda k: k.created_at, reverse=True)
@@ -289,11 +292,11 @@ class LocalVenueRepository(LocalJSONRepository, VenueRepository):
 
         for entity_data in self._data.values():
             if entity_data.get('name') == name:
-                return Venue.model_validate(entity_data)  # type: ignore[no-any-return]
+                return Venue.model_validate(entity_data)
         return None
 
     async def list_all(self, limit: Optional[int] = None, offset: int = 0) -> List[Venue]:
-        entities = await self._list_all(limit, offset)  # type: ignore[no-any-return]
+        entities = await self._list_all(limit, offset)
         entities.sort(key=lambda v: v.name)
         return entities
 
@@ -331,7 +334,7 @@ class LocalFormatRepository(LocalJSONRepository, FormatRepository):
         for entity_data in self._data.values():
             if entity_data.get('name') == name:
                 if game_system is None or entity_data.get('game_system') == game_system:
-                    return Format.model_validate(entity_data)  # type: ignore[no-any-return]
+                    return Format.model_validate(entity_data)
         return None
 
     async def list_by_game_system(self, game_system: str) -> List[Format]:
@@ -340,13 +343,13 @@ class LocalFormatRepository(LocalJSONRepository, FormatRepository):
         formats = []
         for entity_data in self._data.values():
             if entity_data.get('game_system') == game_system:
-                formats.append(Format.model_validate(entity_data))  # type: ignore[no-any-return]
+                formats.append(Format.model_validate(entity_data))
 
         formats.sort(key=lambda f: f.name)
         return formats
 
     async def list_all(self, limit: Optional[int] = None, offset: int = 0) -> List[Format]:
-        entities = await self._list_all(limit, offset)  # type: ignore[no-any-return]
+        entities = await self._list_all(limit, offset)
         entities.sort(key=lambda f: (f.game_system.value, f.name))
         return entities
 
@@ -394,7 +397,7 @@ class LocalTournamentRepository(LocalJSONRepository, TournamentRepository):
         tournaments = []
         for entity_data in self._data.values():
             if entity_data.get('status') == status:
-                tournaments.append(Tournament.model_validate(entity_data))  # type: ignore[no-any-return]
+                tournaments.append(Tournament.model_validate(entity_data))
 
         tournaments.sort(key=lambda t: t.created_at, reverse=True)
         return tournaments
@@ -406,7 +409,7 @@ class LocalTournamentRepository(LocalJSONRepository, TournamentRepository):
         venue_id_str = str(venue_id)
         for entity_data in self._data.values():
             if entity_data.get('venue_id') == venue_id_str:
-                tournaments.append(Tournament.model_validate(entity_data))  # type: ignore[no-any-return]
+                tournaments.append(Tournament.model_validate(entity_data))
 
         tournaments.sort(key=lambda t: t.created_at, reverse=True)
         return tournaments
@@ -418,7 +421,7 @@ class LocalTournamentRepository(LocalJSONRepository, TournamentRepository):
         format_id_str = str(format_id)
         for entity_data in self._data.values():
             if entity_data.get('format_id') == format_id_str:
-                tournaments.append(Tournament.model_validate(entity_data))  # type: ignore[no-any-return]
+                tournaments.append(Tournament.model_validate(entity_data))
 
         tournaments.sort(key=lambda t: t.created_at, reverse=True)
         return tournaments
@@ -430,13 +433,13 @@ class LocalTournamentRepository(LocalJSONRepository, TournamentRepository):
         organizer_id_str = str(organizer_id)
         for entity_data in self._data.values():
             if entity_data.get('created_by') == organizer_id_str:
-                tournaments.append(Tournament.model_validate(entity_data))  # type: ignore[no-any-return]
+                tournaments.append(Tournament.model_validate(entity_data))
 
         tournaments.sort(key=lambda t: t.created_at, reverse=True)
         return tournaments
 
     async def list_all(self, limit: Optional[int] = None, offset: int = 0) -> List[Tournament]:
-        entities = await self._list_all(limit, offset)  # type: ignore[no-any-return]
+        entities = await self._list_all(limit, offset)
         entities.sort(key=lambda t: t.created_at, reverse=True)
         return entities
 
@@ -499,7 +502,7 @@ class LocalRegistrationRepository(LocalJSONRepository, RegistrationRepository):
         for entity_data in self._data.values():
             if (entity_data.get('tournament_id') == tournament_id_str and
                 entity_data.get('player_id') == player_id_str):
-                return TournamentRegistration.model_validate(entity_data)  # type: ignore[no-any-return]
+                return TournamentRegistration.model_validate(entity_data)
         return None
 
     async def get_by_tournament_and_sequence_id(self, tournament_id: UUID, sequence_id: int) -> Optional[TournamentRegistration]:
@@ -510,7 +513,7 @@ class LocalRegistrationRepository(LocalJSONRepository, RegistrationRepository):
         for entity_data in self._data.values():
             if (entity_data.get('tournament_id') == tournament_id_str and
                 entity_data.get('sequence_id') == sequence_id):
-                return TournamentRegistration.model_validate(entity_data)  # type: ignore[no-any-return]
+                return TournamentRegistration.model_validate(entity_data)
         return None
 
     async def list_by_tournament(self, tournament_id: UUID, status: Optional[str] = None) -> List[TournamentRegistration]:
@@ -522,7 +525,7 @@ class LocalRegistrationRepository(LocalJSONRepository, RegistrationRepository):
         for entity_data in self._data.values():
             if entity_data.get('tournament_id') == tournament_id_str:
                 if status is None or entity_data.get('status') == status:
-                    registrations.append(TournamentRegistration.model_validate(entity_data))  # type: ignore[no-any-return]
+                    registrations.append(TournamentRegistration.model_validate(entity_data))
 
         registrations.sort(key=lambda r: r.sequence_id)
         return registrations
@@ -536,7 +539,7 @@ class LocalRegistrationRepository(LocalJSONRepository, RegistrationRepository):
         for entity_data in self._data.values():
             if entity_data.get('player_id') == player_id_str:
                 if status is None or entity_data.get('status') == status:
-                    registrations.append(TournamentRegistration.model_validate(entity_data))  # type: ignore[no-any-return]
+                    registrations.append(TournamentRegistration.model_validate(entity_data))
 
         registrations.sort(key=lambda r: r.registration_time, reverse=True)
         return registrations
@@ -598,7 +601,7 @@ class LocalComponentRepository(LocalJSONRepository, ComponentRepository):
         components = []
         for entity_data in self._data.values():
             if entity_data.get('tournament_id') == tournament_id_str:
-                components.append(Component.model_validate(entity_data))  # type: ignore[no-any-return]
+                components.append(Component.model_validate(entity_data))
 
         components.sort(key=lambda c: c.sequence_order)
         return components
@@ -610,7 +613,7 @@ class LocalComponentRepository(LocalJSONRepository, ComponentRepository):
         for entity_data in self._data.values():
             if (entity_data.get('tournament_id') == tournament_id_str and
                 entity_data.get('sequence_order') == sequence_order):
-                return Component.model_validate(entity_data)  # type: ignore[no-any-return]
+                return Component.model_validate(entity_data)
         return None
 
     async def update(self, component: Component) -> Component:
@@ -641,7 +644,7 @@ class LocalRoundRepository(LocalJSONRepository, RoundRepository):
         rounds = []
         for entity_data in self._data.values():
             if entity_data.get('tournament_id') == tournament_id_str:
-                rounds.append(Round.model_validate(entity_data))  # type: ignore[no-any-return]
+                rounds.append(Round.model_validate(entity_data))
 
         rounds.sort(key=lambda r: r.round_number)
         return rounds
@@ -653,7 +656,7 @@ class LocalRoundRepository(LocalJSONRepository, RoundRepository):
         rounds = []
         for entity_data in self._data.values():
             if entity_data.get('component_id') == component_id_str:
-                rounds.append(Round.model_validate(entity_data))  # type: ignore[no-any-return]
+                rounds.append(Round.model_validate(entity_data))
 
         rounds.sort(key=lambda r: r.round_number)
         return rounds
@@ -665,7 +668,7 @@ class LocalRoundRepository(LocalJSONRepository, RoundRepository):
         for entity_data in self._data.values():
             if (entity_data.get('component_id') == component_id_str and
                 entity_data.get('round_number') == round_number):
-                return Round.model_validate(entity_data)  # type: ignore[no-any-return]
+                return Round.model_validate(entity_data)
         return None
 
     async def update(self, round_obj: Round) -> Round:
@@ -706,7 +709,7 @@ class LocalMatchRepository(LocalJSONRepository, MatchRepository):
         matches = []
         for entity_data in self._data.values():
             if entity_data.get('tournament_id') == tournament_id_str:
-                matches.append(Match.model_validate(entity_data))  # type: ignore[no-any-return]
+                matches.append(Match.model_validate(entity_data))
 
         matches.sort(key=lambda m: (m.round_number, m.table_number or 0))
         return matches
@@ -718,7 +721,7 @@ class LocalMatchRepository(LocalJSONRepository, MatchRepository):
         matches = []
         for entity_data in self._data.values():
             if entity_data.get('round_id') == round_id_str:
-                matches.append(Match.model_validate(entity_data))  # type: ignore[no-any-return]
+                matches.append(Match.model_validate(entity_data))
 
         matches.sort(key=lambda m: m.table_number or 0)
         return matches
@@ -730,7 +733,7 @@ class LocalMatchRepository(LocalJSONRepository, MatchRepository):
         matches = []
         for entity_data in self._data.values():
             if entity_data.get('component_id') == component_id_str:
-                matches.append(Match.model_validate(entity_data))  # type: ignore[no-any-return]
+                matches.append(Match.model_validate(entity_data))
 
         matches.sort(key=lambda m: (m.round_number, m.table_number or 0))
         return matches
@@ -746,7 +749,7 @@ class LocalMatchRepository(LocalJSONRepository, MatchRepository):
                 entity_data.get('player2_id') == player_id_str):
 
                 if tournament_id_str is None or entity_data.get('tournament_id') == tournament_id_str:
-                    matches.append(Match.model_validate(entity_data))  # type: ignore[no-any-return]
+                    matches.append(Match.model_validate(entity_data))
 
         matches.sort(key=lambda m: (m.round_number, m.table_number or 0))
         return matches

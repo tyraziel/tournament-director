@@ -3,6 +3,7 @@ Tests for authentication models and token management.
 
 AIA EAI Hin R Claude Code [Sonnet 4.5] v1.0
 """
+
 from datetime import datetime, timedelta
 from uuid import uuid4
 

@@ -3,8 +3,8 @@ Authentication models for API token management.
 
 AIA EAI Hin R Claude Code [Sonnet 4.5] v1.0
 """
+
 from datetime import datetime
-from typing import Dict, Optional
 from uuid import UUID, uuid4
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -23,10 +23,10 @@ class APIKey(BaseModel):
     name: str = Field(..., min_length=1, max_length=100)
     created_by: UUID  # Player ID who owns this token
     created_at: datetime = Field(default_factory=datetime.utcnow)
-    expires_at: Optional[datetime] = None
+    expires_at: datetime | None = None
     is_active: bool = True
-    last_used_at: Optional[datetime] = None
-    permissions: Optional[Dict[str, bool]] = None  # Future: RBAC scopes
+    last_used_at: datetime | None = None
+    permissions: dict[str, bool] | None = None  # Future: RBAC scopes
 
     model_config = ConfigDict(
         frozen=False,
