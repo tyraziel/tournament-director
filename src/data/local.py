@@ -10,6 +10,7 @@ from uuid import UUID
 
 import aiofiles  # type: ignore[import-untyped]
 
+from src.models.auth import APIKey
 from src.models.format import Format
 from src.models.match import Component, Match, Round
 from src.models.player import Player
@@ -18,6 +19,7 @@ from src.models.venue import Venue
 
 from .exceptions import DuplicateError, NotFoundError
 from .interface import (
+    APIKeyRepository,
     ComponentRepository,
     DataLayer,
     FormatRepository,
@@ -211,6 +213,63 @@ class LocalPlayerRepository(LocalJSONRepository, PlayerRepository):
 
     async def delete(self, player_id: UUID) -> None:
         await self._delete(player_id)
+
+
+class LocalAPIKeyRepository(LocalJSONRepository, APIKeyRepository):
+    """Local JSON implementation of APIKeyRepository.
+
+    AIA EAI Hin R Claude Code [Sonnet 4.5] v1.0
+    """
+
+    def __init__(self, data_dir: Path):
+        super().__init__(data_dir, "api_keys", APIKey)
+
+    async def create(self, api_key: APIKey) -> APIKey:
+        await self._ensure_loaded()
+
+        # Check for duplicate token
+        for existing_data in self._data.values():
+            if existing_data.get('token') == api_key.token:
+                raise DuplicateError("APIKey", "token", api_key.token)
+
+        return await self._create(api_key)  # type: ignore[no-any-return]
+
+    async def get_by_id(self, api_key_id: UUID) -> APIKey:
+        return await self._get_by_id(api_key_id)  # type: ignore[no-any-return]
+
+    async def get_by_token(self, token: str) -> Optional[APIKey]:
+        await self._ensure_loaded()
+
+        for entity_data in self._data.values():
+            if entity_data.get('token') == token:
+                return APIKey.model_validate(entity_data)  # type: ignore[no-any-return]
+        return None
+
+    async def list_by_owner(self, player_id: UUID) -> List[APIKey]:
+        await self._ensure_loaded()
+
+        player_id_str = str(player_id)
+        api_keys = []
+        for entity_data in self._data.values():
+            if entity_data.get('created_by') == player_id_str:
+                api_keys.append(APIKey.model_validate(entity_data))  # type: ignore[no-any-return]
+
+        # Sort by created_at descending (newest first)
+        api_keys.sort(key=lambda k: k.created_at, reverse=True)
+        return api_keys
+
+    async def update(self, api_key: APIKey) -> APIKey:
+        await self._ensure_loaded()
+
+        # Check for duplicate token (excluding self)
+        for entity_id, existing_data in self._data.items():
+            if entity_id != str(api_key.id) and existing_data.get('token') == api_key.token:
+                raise DuplicateError("APIKey", "token", api_key.token)
+
+        return await self._update(api_key)  # type: ignore[no-any-return]
+
+    async def delete(self, api_key_id: UUID) -> None:
+        await self._delete(api_key_id)
 
 
 class LocalVenueRepository(LocalJSONRepository, VenueRepository):
@@ -707,6 +766,7 @@ class LocalDataLayer(DataLayer):
 
         # Initialize repositories in dependency order
         self._player_repo = LocalPlayerRepository(self.data_dir)
+        self._api_key_repo = LocalAPIKeyRepository(self.data_dir)
         self._venue_repo = LocalVenueRepository(self.data_dir)
         self._format_repo = LocalFormatRepository(self.data_dir)
         self._tournament_repo = LocalTournamentRepository(self.data_dir, self._player_repo, self._venue_repo, self._format_repo)
@@ -719,6 +779,10 @@ class LocalDataLayer(DataLayer):
     @property
     def players(self) -> PlayerRepository:
         return self._player_repo
+
+    @property
+    def api_keys(self) -> APIKeyRepository:
+        return self._api_key_repo
 
     @property
     def venues(self) -> VenueRepository:
@@ -756,6 +820,7 @@ class LocalDataLayer(DataLayer):
         # Import data in dependency order
         model_classes = {
             "players": Player,
+            "api_keys": APIKey,
             "venues": Venue,
             "formats": Format,
             "tournaments": Tournament,
@@ -767,6 +832,7 @@ class LocalDataLayer(DataLayer):
 
         repositories = {
             "players": self.players,
+            "api_keys": self.api_keys,
             "venues": self.venues,
             "formats": self.formats,
             "tournaments": self.tournaments,
@@ -796,12 +862,14 @@ class LocalDataLayer(DataLayer):
         await self._tournament_repo._clear_all()
         await self._format_repo._clear_all()
         await self._venue_repo._clear_all()
+        await self._api_key_repo._clear_all()
         await self._player_repo._clear_all()
 
     async def health_check(self) -> Dict[str, Any]:
         """Perform health check and return status information."""
         # Force load all repositories to get accurate counts
         await self._player_repo._ensure_loaded()
+        await self._api_key_repo._ensure_loaded()
         await self._venue_repo._ensure_loaded()
         await self._format_repo._ensure_loaded()
         await self._tournament_repo._ensure_loaded()
@@ -816,6 +884,7 @@ class LocalDataLayer(DataLayer):
             "data_directory": str(self.data_dir.absolute()),
             "entities": {
                 "players": len(self._player_repo._data),
+                "api_keys": len(self._api_key_repo._data),
                 "venues": len(self._venue_repo._data),
                 "formats": len(self._format_repo._data),
                 "tournaments": len(self._tournament_repo._data),

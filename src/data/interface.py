@@ -7,6 +7,7 @@ from abc import ABC, abstractmethod
 from typing import Any, Dict, List, Optional
 from uuid import UUID
 
+from src.models.auth import APIKey
 from src.models.format import Format
 from src.models.match import Component, Match, Round
 from src.models.player import Player
@@ -282,6 +283,34 @@ class MatchRepository(ABC):
         """Delete a match. Raises NotFoundError if not found."""
 
 
+class APIKeyRepository(ABC):
+    """Repository interface for APIKey entities."""
+
+    @abstractmethod
+    async def create(self, api_key: APIKey) -> APIKey:
+        """Create a new API key."""
+
+    @abstractmethod
+    async def get_by_id(self, key_id: UUID) -> APIKey:
+        """Get API key by ID. Raises NotFoundError if not found."""
+
+    @abstractmethod
+    async def get_by_token(self, token: str) -> Optional[APIKey]:
+        """Get API key by token value. Returns None if not found."""
+
+    @abstractmethod
+    async def list_by_owner(self, player_id: UUID) -> List[APIKey]:
+        """List all API keys for a player, ordered by created_at descending."""
+
+    @abstractmethod
+    async def update(self, api_key: APIKey) -> APIKey:
+        """Update an existing API key."""
+
+    @abstractmethod
+    async def delete(self, key_id: UUID) -> None:
+        """Delete an API key. Raises NotFoundError if not found."""
+
+
 class DataLayer(ABC):
     """Main data layer interface providing access to all repositories."""
 
@@ -324,6 +353,11 @@ class DataLayer(ABC):
     @abstractmethod
     def matches(self) -> MatchRepository:
         """Access to match repository."""
+
+    @property
+    @abstractmethod
+    def api_keys(self) -> APIKeyRepository:
+        """Access to API key repository."""
 
     @abstractmethod
     async def seed_data(self, data: Dict[str, List[Dict[str, Any]]]) -> None:

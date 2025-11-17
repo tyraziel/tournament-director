@@ -6,6 +6,7 @@ AIA PAI Hin R Claude Code v1.0
 from typing import Any, Dict, List, Optional
 from uuid import UUID
 
+from src.models.auth import APIKey
 from src.models.format import Format
 from src.models.match import Component, Match, Round
 from src.models.player import Player
@@ -14,6 +15,7 @@ from src.models.venue import Venue
 
 from .exceptions import DuplicateError, NotFoundError
 from .interface import (
+    APIKeyRepository,
     ComponentRepository,
     DataLayer,
     FormatRepository,
@@ -546,6 +548,68 @@ class MockMatchRepository(MatchRepository):
         del self._matches[match_id]
 
 
+class MockAPIKeyRepository(APIKeyRepository):
+    """Mock implementation of APIKeyRepository."""
+
+    def __init__(self) -> None:
+        self._api_keys: Dict[UUID, APIKey] = {}
+        self._token_index: Dict[str, UUID] = {}  # token -> api_key_id
+
+    async def create(self, api_key: APIKey) -> APIKey:
+        if api_key.id in self._api_keys:
+            raise DuplicateError("APIKey", "id", api_key.id)
+
+        # Check for duplicate token
+        if api_key.token in self._token_index:
+            raise DuplicateError("APIKey", "token", api_key.token)
+
+        self._api_keys[api_key.id] = api_key
+        self._token_index[api_key.token] = api_key.id
+        return api_key
+
+    async def get_by_id(self, key_id: UUID) -> APIKey:
+        if key_id not in self._api_keys:
+            raise NotFoundError("APIKey", key_id)
+        return self._api_keys[key_id]
+
+    async def get_by_token(self, token: str) -> Optional[APIKey]:
+        key_id = self._token_index.get(token)
+        if not key_id:
+            return None
+        return self._api_keys.get(key_id)
+
+    async def list_by_owner(self, player_id: UUID) -> List[APIKey]:
+        keys = [key for key in self._api_keys.values() if key.created_by == player_id]
+        keys.sort(key=lambda k: k.created_at, reverse=True)
+        return keys
+
+    async def update(self, api_key: APIKey) -> APIKey:
+        if api_key.id not in self._api_keys:
+            raise NotFoundError("APIKey", api_key.id)
+
+        # If token changed, update index
+        old_api_key = self._api_keys[api_key.id]
+        if old_api_key.token != api_key.token:
+            # Remove old token from index
+            del self._token_index[old_api_key.token]
+            # Check for duplicate new token
+            if api_key.token in self._token_index:
+                raise DuplicateError("APIKey", "token", api_key.token)
+            # Add new token to index
+            self._token_index[api_key.token] = api_key.id
+
+        self._api_keys[api_key.id] = api_key
+        return api_key
+
+    async def delete(self, key_id: UUID) -> None:
+        if key_id not in self._api_keys:
+            raise NotFoundError("APIKey", key_id)
+
+        api_key = self._api_keys[key_id]
+        del self._token_index[api_key.token]
+        del self._api_keys[key_id]
+
+
 class MockDataLayer(DataLayer):
     """Mock implementation of the complete data layer."""
 
@@ -560,6 +624,7 @@ class MockDataLayer(DataLayer):
         self._round_repo = MockRoundRepository(self._tournament_repo, self._component_repo)
         self._match_repo = MockMatchRepository(self._tournament_repo, self._component_repo,
                                               self._round_repo, self._player_repo)
+        self._api_key_repo = MockAPIKeyRepository()
 
     @property
     def players(self) -> PlayerRepository:
@@ -592,6 +657,10 @@ class MockDataLayer(DataLayer):
     @property
     def matches(self) -> MatchRepository:
         return self._match_repo
+
+    @property
+    def api_keys(self) -> APIKeyRepository:
+        return self._api_key_repo
 
     async def seed_data(self, data: Dict[str, List[Dict[str, Any]]]) -> None:
         """Seed the data layer with test/demo data."""
