@@ -3,12 +3,12 @@
 AIA PAI Hin R Claude Code v1.0
 """
 
-from typing import Any, Optional
+from typing import Any, Dict, Optional
 from uuid import UUID
 
 
 # Type alias for dictionaries with string keys
-Details = dict[str, Any]
+Details = Dict[str, Any]
 
 
 class DataLayerError(Exception):

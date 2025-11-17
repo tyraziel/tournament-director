@@ -5,7 +5,7 @@ AIA PAI Hin R Claude Code v1.0
 
 import json
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Type
 from uuid import UUID
 
 import aiofiles  # type: ignore[import-untyped]
@@ -33,7 +33,7 @@ from .interface import (
 class LocalJSONRepository:
     """Base class for JSON file-based repositories."""
 
-    def __init__(self, data_dir: Path, entity_name: str, model_class: type[Any]) -> None:
+    def __init__(self, data_dir: Path, entity_name: str, model_class: Type[Any]) -> None:
         self.data_dir = data_dir
         self.entity_name = entity_name
         self.model_class = model_class

@@ -3,9 +3,18 @@
 AIA PAI Hin R Claude Code v1.0
 """
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
 from uuid import uuid4
 
+from src.models.base import (
+    BaseFormat,
+    ComponentType,
+    GameSystem,
+    PlayerStatus,
+    RoundStatus,
+    TournamentStatus,
+    TournamentVisibility,
+)
 from src.models.format import Format
 from src.models.match import Component, Match, Round
 from src.models.player import Player
@@ -28,7 +37,14 @@ class SeedDataGenerator:
 
     def reset(self) -> None:
         """Clear all generated data."""
-        self.__init__()
+        self.players = {}
+        self.venues = {}
+        self.formats = {}
+        self.tournaments = {}
+        self.registrations = {}
+        self.components = {}
+        self.rounds = {}
+        self.matches = {}
 
     def add_player(
         self, name: str, discord_id: Optional[str] = None, email: Optional[str] = None
@@ -49,8 +65,8 @@ class SeedDataGenerator:
     def add_format(
         self,
         name: str,
-        game_system: str,
-        base_format: str,
+        game_system: Union[str, GameSystem],
+        base_format: Union[str, BaseFormat],
         sub_format: Optional[str] = None,
         card_pool: Optional[str] = None,
         match_structure: Optional[str] = None,
@@ -60,8 +76,8 @@ class SeedDataGenerator:
         format_obj = Format(
             id=uuid4(),
             name=name,
-            game_system=game_system,
-            base_format=base_format,
+            game_system=game_system,  # type: ignore[arg-type]
+            base_format=base_format,  # type: ignore[arg-type]
             sub_format=sub_format,
             card_pool=card_pool or name,
             match_structure=match_structure,
@@ -76,8 +92,8 @@ class SeedDataGenerator:
         format_obj: Format,
         venue: Venue,
         created_by: Player,
-        status: str = "draft",
-        visibility: str = "public",
+        status: Union[str, TournamentStatus] = "draft",
+        visibility: Union[str, TournamentVisibility] = "public",
         description: Optional[str] = None,
         max_players: Optional[int] = None,
     ) -> Tournament:
@@ -85,8 +101,8 @@ class SeedDataGenerator:
         tournament = Tournament(
             id=uuid4(),
             name=name,
-            status=status,
-            visibility=visibility,
+            status=status,  # type: ignore[arg-type]
+            visibility=visibility,  # type: ignore[arg-type]
             registration=RegistrationControl(max_players=max_players, allow_to_override=True),
             format_id=format_obj.id,
             venue_id=venue.id,
@@ -97,7 +113,11 @@ class SeedDataGenerator:
         return tournament
 
     def register_player(
-        self, tournament: Tournament, player: Player, sequence_id: int, status: str = "active"
+        self,
+        tournament: Tournament,
+        player: Player,
+        sequence_id: int,
+        status: Union[str, PlayerStatus] = "active",
     ) -> TournamentRegistration:
         """Register a player for a tournament."""
         registration = TournamentRegistration(
@@ -105,7 +125,7 @@ class SeedDataGenerator:
             tournament_id=tournament.id,
             player_id=player.id,
             sequence_id=sequence_id,
-            status=status,
+            status=status,  # type: ignore[arg-type]
         )
         self.registrations[registration.id] = registration
         return registration
@@ -113,7 +133,7 @@ class SeedDataGenerator:
     def add_component(
         self,
         tournament: Tournament,
-        component_type: str,
+        component_type: Union[str, ComponentType],
         name: str,
         sequence_order: int,
         config: Optional[Dict[str, Any]] = None,
@@ -122,7 +142,7 @@ class SeedDataGenerator:
         component = Component(
             id=uuid4(),
             tournament_id=tournament.id,
-            type=component_type,
+            type=component_type,  # type: ignore[arg-type]
             name=name,
             sequence_order=sequence_order,
             config=config or {},
@@ -136,7 +156,7 @@ class SeedDataGenerator:
         component: Component,
         round_number: int,
         time_limit_minutes: Optional[int] = None,
-        status: str = "pending",
+        status: Union[str, RoundStatus] = "pending",
     ) -> Round:
         """Add a tournament round."""
         round_obj = Round(
@@ -145,7 +165,7 @@ class SeedDataGenerator:
             component_id=component.id,
             round_number=round_number,
             time_limit_minutes=time_limit_minutes,
-            status=status,
+            status=status,  # type: ignore[arg-type]
         )
         self.rounds[round_obj.id] = round_obj
         return round_obj
@@ -425,7 +445,7 @@ def generate_complete_tournament() -> SeedDataGenerator:
             break
 
     if round3:
-        round3.status = "completed"
+        round3.status = "completed"  # type: ignore[assignment]
         gen.add_match(
             tournament, swiss, round3, players[0], players[4], 1, 2, 0, 0
         )  # Undefeated match
@@ -452,7 +472,7 @@ def generate_complete_tournament() -> SeedDataGenerator:
     )
 
     # Mark tournament complete
-    tournament.status = "completed"
+    tournament.status = "completed"  # type: ignore[assignment]
 
     return gen
 
