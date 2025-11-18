@@ -451,19 +451,50 @@ component.config = {
 
 ---
 
-### **Q3: Tiebreaker Usage in Pairing** ⏳ NEEDS CLARIFICATION
-Use tiebreakers to order players within same-point bracket?
+### **Q3: Tiebreaker Sequence** ✅ DECIDED
+How should tiebreakers be applied for both pairing and final standings?
 
-**User suggested**: OMW% → OGW% → MW% → GW% → Random
+**DECISION**: **Configurable tiebreaker sequence, consistent for entire tournament**
 
-**Clarification needed**:
-- Within same-point bracket (e.g., all 2-1), MW% and GW% may be identical
-- Is this for pairing order only, or also final standings?
-- Suggested pairing order: OMW% → OGW% → Random?
+The same tiebreaker sequence is used for:
+- Pairing order within point brackets
+- Final standings display
+- Bye assignment (when points/bye count are tied)
 
-**Questions for user**:
-1. Is this only for pairing order within brackets?
-2. Keep standard MTG tiebreaker for final standings (Match Points → OMW% → GW% → OGW%)?
+**Standard Tiebreaker Profiles**:
+
+#### **MTG Standard** (Default)
+```python
+tiebreaker_sequence = ["match_points", "omw_percent", "gw_percent", "ogw_percent", "random"]
+```
+- Match Points (primary)
+- OMW% (Opponent Match Win %)
+- GW% (Game Win %)
+- OGW% (Opponent Game Win %)
+- Random (final tiebreaker)
+
+#### **Opponent-Heavy** (Alternative)
+```python
+tiebreaker_sequence = ["match_points", "omw_percent", "ogw_percent", "gw_percent", "random"]
+```
+- Emphasizes opponent strength over personal game performance
+
+#### **Personal Performance** (Alternative)
+```python
+tiebreaker_sequence = ["match_points", "gw_percent", "omw_percent", "ogw_percent", "random"]
+```
+- Emphasizes personal game wins over opponent strength
+
+#### **Custom** (Configurable)
+Tournament can define any sequence:
+```python
+component.config = {
+    "tiebreaker_profile": "mtg_standard",  # or "opponent_heavy", "personal_performance", "custom"
+    "custom_tiebreaker_sequence": ["match_points", "omw_percent", "gw_percent", "ogw_percent", "random"],
+}
+```
+
+**Note**: Within same-point brackets, "match_points" is already equal, so the next tiebreaker (OMW%, GW%, etc.) is used for ordering.
 
 ---
 
