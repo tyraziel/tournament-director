@@ -1,0 +1,542 @@
+"""
+Swiss pairing algorithm test cases.
+
+AIA EAI Hin R Claude Code [Sonnet 4.5] v1.0
+
+This module defines comprehensive test cases for Swiss tournament pairing,
+including edge cases, bye handling, and pairing constraints.
+"""
+
+import pytest
+from datetime import datetime, timezone
+from uuid import uuid4, UUID
+
+from src.models.player import Player
+from src.models.tournament import Tournament, TournamentRegistration, RegistrationControl
+from src.models.format import Format
+from src.models.venue import Venue
+from src.models.match import Match, Round, Component
+from src.models.base import (
+    GameSystem,
+    BaseFormat,
+    TournamentStatus,
+    TournamentVisibility,
+    PlayerStatus,
+    ComponentType,
+    ComponentStatus,
+    RoundStatus,
+)
+
+
+# =============================================================================
+# Test Fixtures and Helpers
+# =============================================================================
+
+
+@pytest.fixture
+def base_tournament_data():
+    """Create base tournament setup for testing."""
+    format_id = uuid4()
+    venue_id = uuid4()
+    to_id = uuid4()
+    tournament_id = uuid4()
+    component_id = uuid4()
+
+    return {
+        "format_id": format_id,
+        "venue_id": venue_id,
+        "to_id": to_id,
+        "tournament_id": tournament_id,
+        "component_id": component_id,
+        "tournament": Tournament(
+            id=tournament_id,
+            name="Test Swiss Tournament",
+            status=TournamentStatus.IN_PROGRESS,
+            visibility=TournamentVisibility.PUBLIC,
+            registration=RegistrationControl(),
+            format_id=format_id,
+            venue_id=venue_id,
+            created_by=to_id,
+            created_at=datetime.now(timezone.utc),
+        ),
+        "component": Component(
+            id=component_id,
+            tournament_id=tournament_id,
+            type=ComponentType.SWISS,
+            name="Swiss Rounds",
+            sequence_order=1,
+            status=ComponentStatus.ACTIVE,
+            config={},
+            created_at=datetime.now(timezone.utc),
+        ),
+    }
+
+
+def create_test_players(count: int) -> list[Player]:
+    """Create test players."""
+    return [
+        Player(
+            id=uuid4(),
+            name=f"Player {i+1}",
+            created_at=datetime.now(timezone.utc),
+        )
+        for i in range(count)
+    ]
+
+
+def create_registrations(
+    tournament_id: UUID, players: list[Player]
+) -> list[TournamentRegistration]:
+    """Create tournament registrations for players."""
+    return [
+        TournamentRegistration(
+            id=uuid4(),
+            tournament_id=tournament_id,
+            player_id=player.id,
+            sequence_id=i + 1,
+            status=PlayerStatus.ACTIVE,
+            registration_time=datetime.now(timezone.utc),
+        )
+        for i, player in enumerate(players)
+    ]
+
+
+def create_match(
+    tournament_id: UUID,
+    component_id: UUID,
+    round_id: UUID,
+    round_number: int,
+    player1_id: UUID,
+    player2_id: UUID | None = None,
+    player1_wins: int = 0,
+    player2_wins: int = 0,
+    draws: int = 0,
+) -> Match:
+    """Create a match with results."""
+    return Match(
+        id=uuid4(),
+        tournament_id=tournament_id,
+        component_id=component_id,
+        round_id=round_id,
+        round_number=round_number,
+        player1_id=player1_id,
+        player2_id=player2_id,
+        player1_wins=player1_wins,
+        player2_wins=player2_wins,
+        draws=draws,
+    )
+
+
+# =============================================================================
+# Test Case 1: Basic Round 1 Pairing (Even Players)
+# =============================================================================
+
+
+class TestRound1Pairing:
+    """Test first round pairing logic."""
+
+    def test_round1_even_players_random_pairing(self, base_tournament_data):
+        """
+        SCENARIO: 8 players, round 1
+        EXPECTED: 4 matches, all players paired once, no byes
+        """
+        players = create_test_players(8)
+        registrations = create_registrations(
+            base_tournament_data["tournament_id"], players
+        )
+
+        # TODO: Implement pair_round_1() function
+        # pairings = pair_round_1(registrations, base_tournament_data["component"])
+
+        # Assertions (when implemented):
+        # assert len(pairings) == 4
+        # assert all(p.player1_id != p.player2_id for p in pairings)
+        # assert all(p.player2_id is not None for p in pairings)  # No byes
+
+        # Verify all players paired exactly once
+        # player_ids = [p.player1_id for p in pairings] + [p.player2_id for p in pairings]
+        # assert len(player_ids) == 8
+        # assert len(set(player_ids)) == 8
+
+        pytest.skip("Pairing algorithm not yet implemented")
+
+    def test_round1_odd_players_one_bye(self, base_tournament_data):
+        """
+        SCENARIO: 7 players, round 1
+        EXPECTED: 3 matches + 1 bye (lowest sequence ID or random)
+        """
+        players = create_test_players(7)
+        registrations = create_registrations(
+            base_tournament_data["tournament_id"], players
+        )
+
+        # TODO: Implement pair_round_1() function
+        pytest.skip("Pairing algorithm not yet implemented")
+
+        # Expected behavior:
+        # - 3 regular matches (6 players)
+        # - 1 bye match (player2_id = None)
+        # - Bye player should be determined by algorithm (random or lowest seed)
+
+
+# =============================================================================
+# Test Case 2: Round 2+ Pairing (Standings-Based)
+# =============================================================================
+
+
+class TestSubsequentRoundPairing:
+    """Test pairing for rounds 2 and beyond."""
+
+    def test_round2_pair_by_standings(self, base_tournament_data):
+        """
+        SCENARIO: 8 players after round 1, varying results
+        SETUP:
+          - Match 1: Player1 beats Player2 (2-0)
+          - Match 2: Player3 beats Player4 (2-1)
+          - Match 3: Player5 beats Player6 (2-0)
+          - Match 4: Player7 beats Player8 (2-1)
+
+        STANDINGS after R1:
+          3 points: Player1, Player3, Player5, Player7
+          0 points: Player2, Player4, Player6, Player8
+
+        EXPECTED Round 2 pairings:
+          - 3-point players paired together (4 players → 2 matches)
+          - 0-point players paired together (4 players → 2 matches)
+          - NO rematches from round 1
+        """
+        players = create_test_players(8)
+        registrations = create_registrations(
+            base_tournament_data["tournament_id"], players
+        )
+
+        # Create round 1
+        round1_id = uuid4()
+        round1 = Round(
+            id=round1_id,
+            tournament_id=base_tournament_data["tournament_id"],
+            component_id=base_tournament_data["component_id"],
+            round_number=1,
+            status=RoundStatus.COMPLETED,
+        )
+
+        # Round 1 matches with results
+        round1_matches = [
+            create_match(
+                base_tournament_data["tournament_id"],
+                base_tournament_data["component_id"],
+                round1_id,
+                1,
+                players[0].id,
+                players[1].id,
+                player1_wins=2,
+                player2_wins=0,
+            ),
+            create_match(
+                base_tournament_data["tournament_id"],
+                base_tournament_data["component_id"],
+                round1_id,
+                1,
+                players[2].id,
+                players[3].id,
+                player1_wins=2,
+                player2_wins=1,
+            ),
+            create_match(
+                base_tournament_data["tournament_id"],
+                base_tournament_data["component_id"],
+                round1_id,
+                1,
+                players[4].id,
+                players[5].id,
+                player1_wins=2,
+                player2_wins=0,
+            ),
+            create_match(
+                base_tournament_data["tournament_id"],
+                base_tournament_data["component_id"],
+                round1_id,
+                1,
+                players[6].id,
+                players[7].id,
+                player1_wins=2,
+                player2_wins=1,
+            ),
+        ]
+
+        # TODO: Implement pair_round() function
+        # round2_pairings = pair_round(
+        #     registrations,
+        #     previous_rounds=[round1],
+        #     previous_matches=round1_matches,
+        #     component=base_tournament_data["component"],
+        # )
+
+        pytest.skip("Pairing algorithm not yet implemented")
+
+        # Expected assertions:
+        # - 4 matches created
+        # - Winners paired together (2 matches among 4 winners)
+        # - Losers paired together (2 matches among 4 losers)
+        # - No rematches from round 1
+
+    def test_round2_no_rematches(self, base_tournament_data):
+        """
+        SCENARIO: Verify pairing algorithm NEVER creates rematches
+        EXPECTED: All pairings should be unique across all rounds
+        """
+        pytest.skip("Pairing algorithm not yet implemented")
+
+    def test_pair_down_when_necessary(self, base_tournament_data):
+        """
+        SCENARIO: Top player has played all others at their record
+        SETUP:
+          - Round 3 of tournament
+          - Player1: 6 points (2-0-0), played P3, P5
+          - Player2: 6 points (2-0-0), played P4, P6
+          - Player3: 6 points (2-0-0), played P1, P7
+          - Player1 cannot pair with P2 or P3 without rematch
+
+        EXPECTED:
+          - Player1 "pairs down" to a 3-point player they haven't faced
+        """
+        pytest.skip("Pairing algorithm not yet implemented")
+
+
+# =============================================================================
+# Test Case 3: Bye Handling
+# =============================================================================
+
+
+class TestByeHandling:
+    """Test bye assignment and handling."""
+
+    def test_bye_lowest_ranked_player(self, base_tournament_data):
+        """
+        SCENARIO: 7 players, round 2
+        STANDINGS after R1:
+          - 6 players with 3 points (all won)
+          - 1 player with 0 points (lost)
+
+        EXPECTED:
+          - Lowest-ranked player (0 points) gets the bye
+          - Bye counts as 2-0 match win
+        """
+        pytest.skip("Pairing algorithm not yet implemented")
+
+    def test_bye_rotation_no_duplicates(self, base_tournament_data):
+        """
+        SCENARIO: 5 players, 4 rounds
+        EXPECTED:
+          - Each player gets exactly 1 bye over 4 rounds
+          - OR: If impossible, minimize duplicate byes
+        """
+        pytest.skip("Pairing algorithm not yet implemented")
+
+    def test_bye_match_structure(self, base_tournament_data):
+        """
+        SCENARIO: Player receives a bye
+        EXPECTED:
+          - Match.player1_id = <player_id>
+          - Match.player2_id = None
+          - Match.player1_wins = 2
+          - Match.player2_wins = 0
+          - Match.draws = 0
+        """
+        pytest.skip("Pairing algorithm not yet implemented")
+
+
+# =============================================================================
+# Test Case 4: Player Drops and Late Entries
+# =============================================================================
+
+
+class TestPlayerStateChanges:
+    """Test pairing with drops and late entries."""
+
+    def test_dropped_player_not_paired(self, base_tournament_data):
+        """
+        SCENARIO: Player drops after round 1
+        EXPECTED: Player is NOT paired in round 2 or beyond
+        """
+        players = create_test_players(8)
+        registrations = create_registrations(
+            base_tournament_data["tournament_id"], players
+        )
+
+        # Player 4 drops after round 1
+        registrations[3].status = PlayerStatus.DROPPED
+        registrations[3].drop_time = datetime.now(timezone.utc)
+
+        # TODO: Round 2 pairing should skip Player 4
+        pytest.skip("Pairing algorithm not yet implemented")
+
+    def test_late_entry_receives_bye_losses(self, base_tournament_data):
+        """
+        SCENARIO: Player joins after round 1 has completed
+        EXPECTED:
+          - Late entry player receives bye losses for missed rounds
+          - Late entry player is paired normally in future rounds
+        """
+        pytest.skip("Pairing algorithm not yet implemented")
+
+    def test_odd_players_after_drop(self, base_tournament_data):
+        """
+        SCENARIO: 8 players start, 1 drops, now 7 active
+        EXPECTED: Round 2 should have 1 bye for the 7 remaining players
+        """
+        pytest.skip("Pairing algorithm not yet implemented")
+
+
+# =============================================================================
+# Test Case 5: Tiebreaker Calculations
+# =============================================================================
+
+
+class TestTiebreakers:
+    """Test tiebreaker calculations for standings ordering."""
+
+    def test_match_win_percentage(self, base_tournament_data):
+        """
+        SCENARIO: Calculate MW% for a player
+        FORMULA: (Wins / (Wins + Losses)) * 100
+        MINIMUM: 33.33% (even with 0 wins, per MTG rules)
+
+        EXPECTED:
+          - Player with 2-1 record: 66.67%
+          - Player with 0-3 record: 33.33% (floor)
+        """
+        pytest.skip("Tiebreaker calculations not yet implemented")
+
+    def test_game_win_percentage(self, base_tournament_data):
+        """
+        SCENARIO: Calculate GW% for a player
+        FORMULA: (Game Wins / Total Games) * 100
+        MINIMUM: 33.33% (floor)
+
+        EXPECTED:
+          - Player with 6 game wins, 3 losses: 66.67%
+          - Player with 0 game wins: 33.33% (floor)
+        """
+        pytest.skip("Tiebreaker calculations not yet implemented")
+
+    def test_opponent_match_win_percentage(self, base_tournament_data):
+        """
+        SCENARIO: Calculate OMW% for a player
+        FORMULA: Average of all opponents' MW%
+
+        SETUP:
+          - Player A played 3 opponents
+          - Opponent 1 MW%: 66.67%
+          - Opponent 2 MW%: 50.00%
+          - Opponent 3 MW%: 33.33%
+
+        EXPECTED:
+          - Player A OMW%: (66.67 + 50.00 + 33.33) / 3 = 50.00%
+        """
+        pytest.skip("Tiebreaker calculations not yet implemented")
+
+    def test_opponent_game_win_percentage(self, base_tournament_data):
+        """
+        SCENARIO: Calculate OGW% for a player
+        FORMULA: Average of all opponents' GW%
+        """
+        pytest.skip("Tiebreaker calculations not yet implemented")
+
+    def test_standings_sort_order(self, base_tournament_data):
+        """
+        SCENARIO: Sort players by standings
+        SORT ORDER:
+          1. Match Points (descending)
+          2. OMW% (descending)
+          3. GW% (descending)
+          4. OGW% (descending)
+
+        EXPECTED: Players sorted correctly by tiebreakers
+        """
+        pytest.skip("Standings calculation not yet implemented")
+
+
+# =============================================================================
+# Test Case 6: Complex Edge Cases
+# =============================================================================
+
+
+class TestEdgeCases:
+    """Test complex and unusual pairing scenarios."""
+
+    def test_impossible_pairing_graceful_handling(self, base_tournament_data):
+        """
+        SCENARIO: Pairing becomes impossible due to constraints
+        EXAMPLE: 3 players all at 3-0, all have played each other
+
+        EXPECTED:
+          - Algorithm detects impossible pairing
+          - Returns appropriate error or forces pair-down
+        """
+        pytest.skip("Pairing algorithm not yet implemented")
+
+    def test_minimum_tournament_size(self, base_tournament_data):
+        """
+        SCENARIO: 2 players (minimum possible tournament)
+        EXPECTED:
+          - Round 1: Player1 vs Player2
+          - Round 2: Cannot pair (already played)
+          - OR: Tournament should require minimum 4 players
+        """
+        pytest.skip("Pairing algorithm not yet implemented")
+
+    def test_all_players_same_record(self, base_tournament_data):
+        """
+        SCENARIO: Round 2, all players drew in round 1 (all 1 point)
+        EXPECTED: Pair using tiebreakers (GW%, OMW%, etc.)
+        """
+        pytest.skip("Pairing algorithm not yet implemented")
+
+    def test_pairing_with_multiple_components(self, base_tournament_data):
+        """
+        SCENARIO: Tournament has Swiss then Top 8 elimination
+        EXPECTED: Pairing only considers matches within current component
+        """
+        pytest.skip("Pairing algorithm not yet implemented")
+
+
+# =============================================================================
+# Integration Tests
+# =============================================================================
+
+
+class TestFullTournamentPairing:
+    """Integration tests for complete tournament scenarios."""
+
+    def test_complete_8player_3round_tournament(self, base_tournament_data):
+        """
+        SCENARIO: Full 8-player, 3-round Swiss tournament
+        EXPECTED:
+          - Round 1: Random pairing (4 matches)
+          - Round 2: Standings-based pairing, no rematches
+          - Round 3: Standings-based pairing, no rematches
+          - Final standings calculated correctly
+        """
+        pytest.skip("Full pairing workflow not yet implemented")
+
+    def test_complete_7player_4round_tournament(self, base_tournament_data):
+        """
+        SCENARIO: Full 7-player, 4-round Swiss tournament (odd players)
+        EXPECTED:
+          - Each round has 1 bye
+          - Bye rotates (no player gets 2 byes if avoidable)
+          - All non-bye pairings valid (no rematches, standings-based)
+        """
+        pytest.skip("Full pairing workflow not yet implemented")
+
+    def test_tournament_with_drops_and_late_entries(self, base_tournament_data):
+        """
+        SCENARIO: 8 players start, 1 drops after R1, 1 joins after R2
+        EXPECTED:
+          - Round 1: 8 players (4 matches)
+          - Round 2: 7 players (3 matches + 1 bye) - Player dropped
+          - Round 3: 8 players (4 matches) - Late entry added with bye losses
+          - All pairings valid and standings correct
+        """
+        pytest.skip("Full pairing workflow not yet implemented")
