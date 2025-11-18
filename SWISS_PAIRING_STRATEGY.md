@@ -425,80 +425,107 @@ See `tests/test_swiss_pairing.py` for comprehensive test scenarios:
 
 **Need decisions on the following before full implementation:**
 
-### **Q1: Bye Assignment Priority**
+### **Q1: Bye Assignment Priority** ✅ DECIDED
 When multiple players have same points AND same bye count:
-- A) Random selection?
-- B) Use tiebreakers (OMW%, GW%)?
-- C) Earlier registration time (sequence_id)?
+- ~~A) Random selection?~~
+- ~~B) Use tiebreakers (OMW%, GW%)?~~
+- ~~C) Earlier registration time (sequence_id)?~~
 
-**Proposed**: Option B (tiebreakers)
+**DECISION**: **Option A - Random selection**
 
 ---
 
-### **Q2: Bye Cap**
+### **Q2: Bye Cap** ✅ DECIDED
 Should there be a maximum byes per player?
-- Example: Max 1 bye in a 4-round tournament
-- Or: Unlimited byes (could happen with odd count + drops)
+- ~~Example: Max 1 bye in a 4-round tournament~~
+- ~~Or: Unlimited byes (could happen with odd count + drops)~~
 
-**Proposed**: No hard cap, but rotation logic minimizes duplicates
+**DECISION**: **Max 1 bye per player (configurable)**
 
----
-
-### **Q3: Tiebreaker Usage in Pairing**
-Use OMW%/GW% to order players within same-point bracket?
-- Example: Among 4 players at 2-1, sort by OMW% before pairing
-- **Pro**: Better quality matchups
-- **Con**: More complex algorithm
-
-**Proposed**: Yes, use tiebreakers for pairing order
+Configuration:
+```python
+component.config = {
+    "max_byes_per_player": 1,  # Default: 1, set to None for unlimited
+}
+```
 
 ---
 
-### **Q4: Pair-Down Tracking**
+### **Q3: Tiebreaker Usage in Pairing** ⏳ NEEDS CLARIFICATION
+Use tiebreakers to order players within same-point bracket?
+
+**User suggested**: OMW% → OGW% → MW% → GW% → Random
+
+**Clarification needed**:
+- Within same-point bracket (e.g., all 2-1), MW% and GW% may be identical
+- Is this for pairing order only, or also final standings?
+- Suggested pairing order: OMW% → OGW% → Random?
+
+**Questions for user**:
+1. Is this only for pairing order within brackets?
+2. Keep standard MTG tiebreaker for final standings (Match Points → OMW% → GW% → OGW%)?
+
+---
+
+### **Q4: Pair-Down Tracking** ✅ DECIDED
 Should we track when players "pair down"?
-- Could be used for tiebreakers or fairness
-- Adds complexity
 
-**Proposed**: No tracking in Phase 1, revisit if needed
+**DECISION**: **Yes, track pair-downs to distribute them fairly**
+
+Implementation:
+- Track which players have paired down in previous rounds
+- When selecting who pairs down, prioritize players who haven't paired down yet
+- Adds fairness to bracket movement
 
 ---
 
-### **Q5: Impossible Pairing Resolution**
+### **Q5: Impossible Pairing Resolution** ✅ DECIDED
 When valid pairings can't be generated:
-- A) Error requiring TO intervention ✅ **PREFERRED**
-- B) Force rematch (least recent opponent)
-- C) Emergency bye (even with even player count)
 
-**Proposed**: Option A with helpful error messages
+**DECISION**: **Error requiring TO intervention**
+
+TO can manually:
+- Force a specific pairing (override rematch restriction)
+- Assign emergency bye
+- Adjust tournament structure
 
 ---
 
-### **Q6: Bye Structure by Format**
+### **Q6: Bye Structure by Format** ✅ DECIDED
 Game wins awarded for bye:
-- BO1 formats: 1-0
-- BO3 formats: 2-0
-- BO5 formats: 3-0
 
-**Proposed**: Format-aware with configurable override
+**DECISION**: **Format-aware with configurable override**
+
+- BO1 formats: 1-0 bye
+- BO3 formats: 2-0 bye
+- BO5 formats: 3-0 bye
+- Configurable per tournament
 
 ---
 
-### **Q7: Byes in OMW% Calculation**
+### **Q7: Byes in OMW% Calculation** ✅ DECIDED
 When calculating opponent statistics, should byes count?
-- **MTG Standard**: Byes excluded from opponent calculations
-- **Alternative**: Include byes as matches
 
-**Proposed**: Follow MTG standard (exclude byes)
+**DECISION**: **Follow MTG standard - exclude byes from opponent calculations**
+
+Byes do not count toward:
+- Opponent Match Win Percentage (OMW%)
+- Opponent Game Win Percentage (OGW%)
 
 ---
 
-### **Q8: Rematch Prevention Data Structure**
+### **Q8: Rematch Prevention Data Structure** ✅ DECIDED
 How to efficiently check "Have these players faced each other?"
-- A) Dict of sets: `{player_id: {opponent_ids}}`
-- B) Global set of tuples: `{(player1_id, player2_id)}`
-- C) Query match history each time
 
-**Proposed**: Option A (fastest lookup)
+**DECISION**: **Dict of sets for fast lookup**
+
+```python
+match_history: dict[UUID, set[UUID]] = {}
+# match_history[player_id] = {opponent1_id, opponent2_id, ...}
+
+# O(1) lookup:
+has_played = opponent_id in match_history[player_id]
+```
 
 ---
 
