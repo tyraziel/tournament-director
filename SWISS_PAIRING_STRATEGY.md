@@ -463,21 +463,23 @@ The same tiebreaker sequence is used for:
 
 **Standard Tiebreaker Profiles**:
 
-#### **MTG Standard** (Default)
-```python
-tiebreaker_sequence = ["match_points", "omw_percent", "gw_percent", "ogw_percent", "random"]
-```
-- Match Points (primary)
-- OMW% (Opponent Match Win %)
-- GW% (Game Win %)
-- OGW% (Opponent Game Win %)
-- Random (final tiebreaker)
-
-#### **Opponent-Heavy** (Alternative)
+#### **Opponent-Heavy** (Default)
 ```python
 tiebreaker_sequence = ["match_points", "omw_percent", "ogw_percent", "gw_percent", "random"]
 ```
-- Emphasizes opponent strength over personal game performance
+- Match Points (primary)
+- OMW% (Opponent Match Win %)
+- OGW% (Opponent Game Win %)
+- GW% (Game Win %)
+- Random (final tiebreaker)
+- **Rationale**: Maximizes emphasis on opponent quality over personal performance
+
+#### **MTG Standard** (Alternative)
+```python
+tiebreaker_sequence = ["match_points", "omw_percent", "gw_percent", "ogw_percent", "random"]
+```
+- Official Wizards of the Coast tournament tiebreaker order
+- OMW% → GW% → OGW%
 
 #### **Personal Performance** (Alternative)
 ```python
@@ -489,8 +491,14 @@ tiebreaker_sequence = ["match_points", "gw_percent", "omw_percent", "ogw_percent
 Tournament can define any sequence:
 ```python
 component.config = {
-    "tiebreaker_profile": "mtg_standard",  # or "opponent_heavy", "personal_performance", "custom"
-    "custom_tiebreaker_sequence": ["match_points", "omw_percent", "gw_percent", "ogw_percent", "random"],
+    "tiebreaker_profile": "opponent_heavy",  # Default, or "mtg_standard", "personal_performance", "custom"
+    "custom_tiebreaker_sequence": None,  # Only used when profile="custom"
+}
+
+# Example custom sequence:
+component.config = {
+    "tiebreaker_profile": "custom",
+    "custom_tiebreaker_sequence": ["match_points", "gw_percent", "omw_percent", "ogw_percent", "random"],
 }
 ```
 
