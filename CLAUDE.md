@@ -233,20 +233,35 @@ Each entity has its own repository with full CRUD operations:
   - Manual end: TO can terminate tournament early
   - State validation: Prevents invalid operations (e.g., starting completed tournament)
 
+### ✅ Completed (FastAPI REST API)
+- **FastAPI server with backend abstraction** (40 endpoints, 95 tests, 100% passing)
+  - Players API (7 endpoints): Full CRUD + search
+  - Venues API (5 endpoints): Full CRUD
+  - Formats API (6 endpoints): Full CRUD + filter by game system
+  - Tournaments API (9 endpoints): Full CRUD + lifecycle (start/complete) + filters
+  - Registrations API (3 endpoints): Register, list, drop players
+  - Rounds & Pairings API (4 endpoints): Pair rounds, get round, complete round, standings
+  - Matches API (3 endpoints): List matches, get match, submit results
+  - Health & Documentation endpoints
+- **OpenAPI specification** with Swagger UI and ReDoc
+- **Comprehensive test coverage** (95 tests: 61 integration + 34 OpenAPI validation)
+- **Type-safe request/response models** with Pydantic validation
+- **Swiss tournament support** via REST API (pairing, standings, tiebreakers)
+
 ### 🔄 In Progress
-- FastAPI server with backend abstraction
-- REST endpoints for all CRUD operations
-- Database backend integration with FastAPI
+- Database backend integration with FastAPI (DatabaseDataLayer ready, needs endpoint integration)
 
 ### 📋 Planned
+- **Authentication & Authorization** (JWT + API keys) - Next major milestone
 - Textual TUI implementation
 - Discord bot integration
 - Elimination bracket pairing (single/double elimination)
-- API Key repository (optional - for API authentication)
+- WebSocket support for live tournament updates
+- Production deployment guide
 
 ### Next Steps
-1. **Integrate database backend with FastAPI** - Connect DatabaseDataLayer to existing endpoints
-2. **Add authentication and authorization** - JWT tokens or session-based auth
+1. **Add authentication and authorization** - JWT tokens + API keys (see FASTAPI_STATUS.md for detailed plan)
+2. **Integrate database backend with FastAPI** - Connect DatabaseDataLayer to existing endpoints
 3. **Production deployment** - Deploy with PostgreSQL database
 4. **Build TUI framework** - Textual interface consuming API
 5. **Add Discord bot integration** - Tournament management via Discord
