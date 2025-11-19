@@ -17,21 +17,23 @@
 - ✅ Interactive documentation at `/docs` (Swagger UI)
 - ✅ Alternative documentation at `/redoc` (ReDoc)
 
-### API Endpoints (21 endpoints)
+### API Endpoints (30 endpoints)
 - ✅ **Health**: Basic + detailed health checks with data layer validation
 - ✅ **Players** (7 endpoints): Full CRUD + search by name/discord_id
 - ✅ **Venues** (5 endpoints): Full CRUD operations
 - ✅ **Formats** (6 endpoints): Full CRUD + filter by game system
+- ✅ **Tournaments** (9 endpoints): Full CRUD + filter by status/venue/format + lifecycle (start/complete)
 - ✅ **Root**: API information endpoint
 
-### Test Coverage (51 tests, 100% passing)
-- ✅ **OpenAPI Validation** (24 tests): Schema, endpoints, models, parameters
-- ✅ **Integration Tests** (27 tests): All CRUD operations, pagination, errors
+### Test Coverage (65 tests, 100% passing)
+- ✅ **OpenAPI Validation** (27 tests): Schema, endpoints, models, parameters
+- ✅ **Integration Tests** (38 tests): All CRUD operations, pagination, errors, lifecycle
 
 ### Data Models
-- ✅ API request models (PlayerCreate, VenueCreate, FormatCreate)
-- ✅ API update models (PlayerUpdate, VenueUpdate, FormatUpdate)
+- ✅ API request models (PlayerCreate, VenueCreate, FormatCreate, TournamentCreate)
+- ✅ API update models (PlayerUpdate, VenueUpdate, FormatUpdate, TournamentUpdate)
 - ✅ Response models with validation
+- ✅ RegistrationControl nested model
 
 ---
 
@@ -50,11 +52,6 @@
 ---
 
 ## 📋 Not Started (Planned for Future PRs)
-
-### Tournament Management API
-- [ ] Tournament CRUD endpoints
-- [ ] Tournament lifecycle endpoints (start, pause, complete)
-- [ ] Tournament state validation
 
 ### Registration API
 - [ ] Player registration endpoints
@@ -230,6 +227,18 @@ GET    /formats/{id}                     - Get format by ID
 PUT    /formats/{id}                     - Update format
 DELETE /formats/{id}                     - Delete format
 GET    /formats/game/{game_system}       - Filter by game system
+
+# Tournaments
+GET    /tournaments/                     - List tournaments (paginated)
+POST   /tournaments/                     - Create tournament
+GET    /tournaments/{id}                 - Get tournament by ID
+PUT    /tournaments/{id}                 - Update tournament
+DELETE /tournaments/{id}                 - Delete tournament
+GET    /tournaments/status/{status}      - Filter by status
+GET    /tournaments/venue/{venue_id}     - Filter by venue
+GET    /tournaments/format/{format_id}   - Filter by format
+POST   /tournaments/{id}/start           - Start tournament
+POST   /tournaments/{id}/complete        - Complete tournament
 ```
 
 ### Planned Endpoints (Future PRs)
@@ -248,14 +257,7 @@ GET    /auth/api-keys                    - List user's API keys
 GET    /auth/api-keys/{id}               - Get API key details
 DELETE /auth/api-keys/{id}               - Revoke API key
 
-# Tournaments
-GET    /tournaments/                     - List tournaments
-POST   /tournaments/                     - Create tournament
-GET    /tournaments/{id}                 - Get tournament
-PUT    /tournaments/{id}                 - Update tournament
-DELETE /tournaments/{id}                 - Delete tournament
-POST   /tournaments/{id}/start           - Start tournament
-POST   /tournaments/{id}/complete        - Complete tournament
+# Tournament Advanced Features (Not Yet Implemented)
 GET    /tournaments/{id}/standings       - Get standings
 
 # Registrations
@@ -392,18 +394,19 @@ Branch: `claude/auth-implementation`
 ## 🎯 Success Metrics
 
 ### Current Status
-- ✅ 21 API endpoints implemented
-- ✅ 51 tests passing (100% success rate)
+- ✅ 30 API endpoints implemented (60% of v1.0 target)
+- ✅ 65 tests passing (100% success rate, 43% of v1.0 target)
 - ✅ Full OpenAPI documentation
 - ✅ Type-safe request/response models
 - ✅ Async-first architecture
 - ✅ Backend abstraction (Mock/Local/Database)
+- ✅ Tournament CRUD and lifecycle management
 
 ### Target for v1.0
-- [ ] 50+ API endpoints
-- [ ] 150+ tests (API + integration)
+- [ ] 50+ API endpoints (currently at 30)
+- [ ] 150+ tests (API + integration) (currently at 65)
 - [ ] Authentication & authorization
-- [ ] Complete tournament lifecycle management
+- [ ] Registration, rounds, pairings, and match endpoints
 - [ ] WebSocket support for live updates
 - [ ] Production-ready deployment guide
 
