@@ -219,10 +219,7 @@ async def search_players_by_name(
 
     # Filter by name (case-insensitive partial match)
     name_lower = name.lower()
-    matching_players = [
-        player for player in all_players
-        if name_lower in player.name.lower()
-    ]
+    matching_players = [player for player in all_players if name_lower in player.name.lower()]
 
     # Apply pagination
     start = pagination["offset"]

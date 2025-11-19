@@ -103,6 +103,7 @@ class JSON(TypeDecorator):
             # Falls back to TEXT for older versions
             try:
                 from sqlalchemy.dialects.mysql import JSON as MySQLJSON  # noqa: N811
+
                 return dialect.type_descriptor(MySQLJSON())
             except ImportError:
                 return dialect.type_descriptor(Text())
@@ -110,11 +111,7 @@ class JSON(TypeDecorator):
             # SQLite: Use TEXT
             return dialect.type_descriptor(Text())
 
-    def process_bind_param(
-        self,
-        value: dict[str, Any] | None,
-        dialect: Any
-    ) -> Any | None:
+    def process_bind_param(self, value: dict[str, Any] | None, dialect: Any) -> Any | None:
         """Convert Python dict to database format."""
         if value is None:
             return None
@@ -126,11 +123,7 @@ class JSON(TypeDecorator):
         # SQLite: Serialize to JSON string
         return json.dumps(value)
 
-    def process_result_value(
-        self,
-        value: Any | None,
-        dialect: Any
-    ) -> dict[str, Any] | None:
+    def process_result_value(self, value: Any | None, dialect: Any) -> dict[str, Any] | None:
         """Convert database format to Python dict."""
         if value is None:
             return None

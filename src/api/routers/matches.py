@@ -22,7 +22,7 @@ async def list_matches(
     tournament_id: UUID,
     data_layer: DataLayerDep,
     pagination: PaginationDep,
-    round_number: int | None = None
+    round_number: int | None = None,
 ) -> list[Match]:
     """
     List all matches in a tournament.
@@ -35,8 +35,7 @@ async def list_matches(
         await data_layer.tournaments.get_by_id(tournament_id)
     except NotFoundError:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Tournament {tournament_id} not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail=f"Tournament {tournament_id} not found"
         ) from None
 
     # Get matches
@@ -53,25 +52,19 @@ async def list_matches(
 
 
 @router.get("/matches/{match_id}", response_model=Match)
-async def get_match(
-    match_id: UUID,
-    data_layer: DataLayerDep
-) -> Match:
+async def get_match(match_id: UUID, data_layer: DataLayerDep) -> Match:
     """Get a specific match by ID."""
     try:
         return await data_layer.matches.get_by_id(match_id)
     except NotFoundError:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Match {match_id} not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail=f"Match {match_id} not found"
         ) from None
 
 
 @router.put("/matches/{match_id}/result", response_model=Match)
 async def submit_match_result(
-    match_id: UUID,
-    result: MatchResultSubmit,
-    data_layer: DataLayerDep
+    match_id: UUID, result: MatchResultSubmit, data_layer: DataLayerDep
 ) -> Match:
     """
     Submit a match result.
@@ -87,18 +80,17 @@ async def submit_match_result(
         match = await data_layer.matches.get_by_id(match_id)
     except NotFoundError:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Match {match_id} not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail=f"Match {match_id} not found"
         ) from None
 
     # Validate winner is one of the players (if not a draw)
-    if (
-        result.winner_id is not None
-        and result.winner_id not in [match.player1_id, match.player2_id]
-    ):
+    if result.winner_id is not None and result.winner_id not in [
+        match.player1_id,
+        match.player2_id,
+    ]:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="winner_id must be either player1_id or player2_id"
+            detail="winner_id must be either player1_id or player2_id",
         )
 
     # Update match with result

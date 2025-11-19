@@ -150,10 +150,10 @@ class MockFormatRepository(FormatRepository):
 
         # Check for duplicate name within game system
         for existing in self._formats.values():
-            if (existing.name == format_obj.name and
-                existing.game_system == format_obj.game_system):
-                raise DuplicateError("Format", "name+game_system",
-                                   f"{format_obj.name}+{format_obj.game_system}")
+            if existing.name == format_obj.name and existing.game_system == format_obj.game_system:
+                raise DuplicateError(
+                    "Format", "name+game_system", f"{format_obj.name}+{format_obj.game_system}"
+                )
 
         self._formats[format_obj.id] = format_obj
         return format_obj
@@ -165,9 +165,8 @@ class MockFormatRepository(FormatRepository):
 
     async def get_by_name(self, name: str, game_system: str | None = None) -> Format | None:
         for format_obj in self._formats.values():
-            if (
-                format_obj.name == name
-                and (game_system is None or format_obj.game_system == game_system)
+            if format_obj.name == name and (
+                game_system is None or format_obj.game_system == game_system
             ):
                 return format_obj
         return None
@@ -193,11 +192,14 @@ class MockFormatRepository(FormatRepository):
 
         # Check for duplicate name within game system (excluding self)
         for existing in self._formats.values():
-            if (existing.id != format_obj.id and
-                existing.name == format_obj.name and
-                existing.game_system == format_obj.game_system):
-                raise DuplicateError("Format", "name+game_system",
-                                   f"{format_obj.name}+{format_obj.game_system}")
+            if (
+                existing.id != format_obj.id
+                and existing.name == format_obj.name
+                and existing.game_system == format_obj.game_system
+            ):
+                raise DuplicateError(
+                    "Format", "name+game_system", f"{format_obj.name}+{format_obj.game_system}"
+                )
 
         self._formats[format_obj.id] = format_obj
         return format_obj
@@ -308,17 +310,27 @@ class MockRegistrationRepository(RegistrationRepository):
 
         # Check for duplicate registration
         for existing in self._registrations.values():
-            if (existing.tournament_id == registration.tournament_id and
-                existing.player_id == registration.player_id):
-                raise DuplicateError("TournamentRegistration", "tournament+player",
-                                   f"{registration.tournament_id}+{registration.player_id}")
+            if (
+                existing.tournament_id == registration.tournament_id
+                and existing.player_id == registration.player_id
+            ):
+                raise DuplicateError(
+                    "TournamentRegistration",
+                    "tournament+player",
+                    f"{registration.tournament_id}+{registration.player_id}",
+                )
 
         # Check for duplicate sequence ID
         for existing in self._registrations.values():
-            if (existing.tournament_id == registration.tournament_id and
-                existing.sequence_id == registration.sequence_id):
-                raise DuplicateError("TournamentRegistration", "tournament+sequence_id",
-                                   f"{registration.tournament_id}+{registration.sequence_id}")
+            if (
+                existing.tournament_id == registration.tournament_id
+                and existing.sequence_id == registration.sequence_id
+            ):
+                raise DuplicateError(
+                    "TournamentRegistration",
+                    "tournament+sequence_id",
+                    f"{registration.tournament_id}+{registration.sequence_id}",
+                )
 
         self._registrations[registration.id] = registration
         return registration
@@ -332,8 +344,7 @@ class MockRegistrationRepository(RegistrationRepository):
         self, tournament_id: UUID, player_id: UUID
     ) -> TournamentRegistration | None:
         for registration in self._registrations.values():
-            if (registration.tournament_id == tournament_id and
-                registration.player_id == player_id):
+            if registration.tournament_id == tournament_id and registration.player_id == player_id:
                 return registration
         return None
 
@@ -341,8 +352,10 @@ class MockRegistrationRepository(RegistrationRepository):
         self, tournament_id: UUID, sequence_id: int
     ) -> TournamentRegistration | None:
         for registration in self._registrations.values():
-            if (registration.tournament_id == tournament_id and
-                registration.sequence_id == sequence_id):
+            if (
+                registration.tournament_id == tournament_id
+                and registration.sequence_id == sequence_id
+            ):
                 return registration
         return None
 
@@ -350,8 +363,7 @@ class MockRegistrationRepository(RegistrationRepository):
         self, tournament_id: UUID, status: str | None = None
     ) -> list[TournamentRegistration]:
         registrations = [
-            r for r in self._registrations.values()
-            if r.tournament_id == tournament_id
+            r for r in self._registrations.values() if r.tournament_id == tournament_id
         ]
 
         if status:
@@ -374,8 +386,10 @@ class MockRegistrationRepository(RegistrationRepository):
     async def get_next_sequence_id(self, tournament_id: UUID) -> int:
         max_sequence_id = 0
         for registration in self._registrations.values():
-            if (registration.tournament_id == tournament_id and
-                registration.sequence_id > max_sequence_id):
+            if (
+                registration.tournament_id == tournament_id
+                and registration.sequence_id > max_sequence_id
+            ):
                 max_sequence_id = registration.sequence_id
         return max_sequence_id + 1
 
@@ -389,11 +403,16 @@ class MockRegistrationRepository(RegistrationRepository):
 
         # Check for duplicate sequence ID (excluding self)
         for existing in self._registrations.values():
-            if (existing.id != registration.id and
-                existing.tournament_id == registration.tournament_id and
-                existing.sequence_id == registration.sequence_id):
-                raise DuplicateError("TournamentRegistration", "tournament+sequence_id",
-                                   f"{registration.tournament_id}+{registration.sequence_id}")
+            if (
+                existing.id != registration.id
+                and existing.tournament_id == registration.tournament_id
+                and existing.sequence_id == registration.sequence_id
+            ):
+                raise DuplicateError(
+                    "TournamentRegistration",
+                    "tournament+sequence_id",
+                    f"{registration.tournament_id}+{registration.sequence_id}",
+                )
 
         self._registrations[registration.id] = registration
         return registration
@@ -406,6 +425,7 @@ class MockRegistrationRepository(RegistrationRepository):
 
 # Additional repositories would follow the same pattern...
 # For brevity, I'll implement a basic version and we can expand later
+
 
 class MockComponentRepository(ComponentRepository):
     def __init__(self, tournament_repo: MockTournamentRepository) -> None:
@@ -431,8 +451,10 @@ class MockComponentRepository(ComponentRepository):
         self, tournament_id: UUID, sequence_order: int
     ) -> Component | None:
         for component in self._components.values():
-            if (component.tournament_id == tournament_id and
-                component.sequence_order == sequence_order):
+            if (
+                component.tournament_id == tournament_id
+                and component.sequence_order == sequence_order
+            ):
                 return component
         return None
 
@@ -458,7 +480,7 @@ class MockRoundRepository(RoundRepository):
 
     async def create(self, round_obj: Round) -> Round:
         await self._tournament_repo.get_by_id(round_obj.tournament_id)  # Validate FK
-        await self._component_repo.get_by_id(round_obj.component_id)    # Validate FK
+        await self._component_repo.get_by_id(round_obj.component_id)  # Validate FK
         self._rounds[round_obj.id] = round_obj
         return round_obj
 
@@ -481,8 +503,7 @@ class MockRoundRepository(RoundRepository):
         self, component_id: UUID, round_number: int
     ) -> Round | None:
         for round_obj in self._rounds.values():
-            if (round_obj.component_id == component_id and
-                round_obj.round_number == round_number):
+            if round_obj.component_id == component_id and round_obj.round_number == round_number:
                 return round_obj
         return None
 
@@ -547,8 +568,11 @@ class MockMatchRepository(MatchRepository):
     async def list_by_player(
         self, player_id: UUID, tournament_id: UUID | None = None
     ) -> list[Match]:
-        matches = [m for m in self._matches.values()
-                  if m.player1_id == player_id or m.player2_id == player_id]
+        matches = [
+            m
+            for m in self._matches.values()
+            if m.player1_id == player_id or m.player2_id == player_id
+        ]
 
         if tournament_id:
             matches = [m for m in matches if m.tournament_id == tournament_id]
@@ -646,8 +670,9 @@ class MockDataLayer(DataLayer):
         )
         self._component_repo = MockComponentRepository(self._tournament_repo)
         self._round_repo = MockRoundRepository(self._tournament_repo, self._component_repo)
-        self._match_repo = MockMatchRepository(self._tournament_repo, self._component_repo,
-                                              self._round_repo, self._player_repo)
+        self._match_repo = MockMatchRepository(
+            self._tournament_repo, self._component_repo, self._round_repo, self._player_repo
+        )
         self._api_key_repo = MockAPIKeyRepository()
 
     @property
@@ -750,5 +775,5 @@ class MockDataLayer(DataLayer):
                 "components": len(self._component_repo._components),
                 "rounds": len(self._round_repo._rounds),
                 "matches": len(self._match_repo._matches),
-            }
+            },
         }

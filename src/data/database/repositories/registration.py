@@ -45,14 +45,14 @@ class DatabaseRegistrationRepository(RegistrationRepository):
         # Check for duplicate player in tournament
         stmt = select(TournamentRegistrationModel).where(
             TournamentRegistrationModel.tournament_id == registration.tournament_id,
-            TournamentRegistrationModel.player_id == registration.player_id
+            TournamentRegistrationModel.player_id == registration.player_id,
         )
         result = await self.session.execute(stmt)
         if result.scalar_one_or_none():
             raise DuplicateError(
                 "TournamentRegistration",
                 "player_id",
-                f"{registration.player_id} in tournament {registration.tournament_id}"
+                f"{registration.player_id} in tournament {registration.tournament_id}",
             )
 
         db_reg = TournamentRegistrationModel(
@@ -85,7 +85,7 @@ class DatabaseRegistrationRepository(RegistrationRepository):
         """Get registration by tournament and player. Returns None if not found."""
         stmt = select(TournamentRegistrationModel).where(
             TournamentRegistrationModel.tournament_id == tournament_id,
-            TournamentRegistrationModel.player_id == player_id
+            TournamentRegistrationModel.player_id == player_id,
         )
         result = await self.session.execute(stmt)
         db_reg = result.scalar_one_or_none()
@@ -101,7 +101,7 @@ class DatabaseRegistrationRepository(RegistrationRepository):
         """Get registration by tournament and sequence ID. Returns None if not found."""
         stmt = select(TournamentRegistrationModel).where(
             TournamentRegistrationModel.tournament_id == tournament_id,
-            TournamentRegistrationModel.sequence_id == sequence_id
+            TournamentRegistrationModel.sequence_id == sequence_id,
         )
         result = await self.session.execute(stmt)
         db_reg = result.scalar_one_or_none()

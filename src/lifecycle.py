@@ -222,8 +222,7 @@ def should_tournament_end(
     # For now, we rely on max_rounds
 
     logger.debug(
-        f"Tournament should not end: Round {current_round_number}, "
-        f"no termination conditions met"
+        f"Tournament should not end: Round {current_round_number}, no termination conditions met"
     )
     return False
 
@@ -280,8 +279,7 @@ def start_tournament(
 
     if tournament.status == TournamentStatus.COMPLETED:
         error_msg = (
-            f"Cannot start tournament in {tournament.status.value} status "
-            "(already finished)"
+            f"Cannot start tournament in {tournament.status.value} status (already finished)"
         )
         logger.error(error_msg)
         raise ValueError(error_msg)
@@ -303,8 +301,7 @@ def start_tournament(
     tournament.start_time = datetime.now(timezone.utc)
 
     logger.info(
-        f"Tournament started: status={tournament.status.value}, "
-        f"start_time={tournament.start_time}"
+        f"Tournament started: status={tournament.status.value}, start_time={tournament.start_time}"
     )
 
     # Activate component
@@ -382,8 +379,7 @@ def end_tournament(
     tournament.end_time = datetime.now(timezone.utc)
 
     logger.info(
-        f"Tournament completed: status={tournament.status.value}, "
-        f"end_time={tournament.end_time}"
+        f"Tournament completed: status={tournament.status.value}, end_time={tournament.end_time}"
     )
 
     # Complete component

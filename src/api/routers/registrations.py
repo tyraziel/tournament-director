@@ -27,9 +27,7 @@ router = APIRouter(prefix="/tournaments")
     status_code=status.HTTP_201_CREATED,
 )
 async def register_player(
-    tournament_id: UUID,
-    registration_data: PlayerRegistrationCreate,
-    data_layer: DataLayerDep
+    tournament_id: UUID, registration_data: PlayerRegistrationCreate, data_layer: DataLayerDep
 ) -> TournamentRegistration:
     """
     Register a player to a tournament.
@@ -51,8 +49,7 @@ async def register_player(
         tournament = await data_layer.tournaments.get_by_id(tournament_id)
     except NotFoundError:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Tournament {tournament_id} not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail=f"Tournament {tournament_id} not found"
         ) from None
 
     # Verify player exists
@@ -61,7 +58,7 @@ async def register_player(
     except NotFoundError:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Player {registration_data.player_id} not found"
+            detail=f"Player {registration_data.player_id} not found",
         ) from None
 
     # Check for duplicate registration
@@ -71,7 +68,10 @@ async def register_player(
     if existing_registration:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail=f"Player {registration_data.player_id} is already registered for this tournament"
+            detail=(
+                f"Player {registration_data.player_id} is already "
+                "registered for this tournament"
+            ),
         )
 
     # Validate password if required
@@ -79,13 +79,10 @@ async def register_player(
         if not registration_data.password:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="Password required for this tournament"
+                detail="Password required for this tournament",
             )
         if registration_data.password != tournament.registration.registration_password:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Invalid password"
-            )
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Invalid password")
 
     # Check max_players limit
     if tournament.registration.max_players:
@@ -110,7 +107,7 @@ async def register_player(
         sequence_id=sequence_id,
         status=PlayerStatus.ACTIVE,
         registration_time=datetime.now(timezone.utc),
-        notes=registration_data.notes
+        notes=registration_data.notes,
     )
 
     return await data_layer.registrations.create(registration)
@@ -118,9 +115,7 @@ async def register_player(
 
 @router.get("/{tournament_id}/registrations", response_model=list[TournamentRegistration])
 async def list_registrations(
-    tournament_id: UUID,
-    data_layer: DataLayerDep,
-    pagination: PaginationDep
+    tournament_id: UUID, data_layer: DataLayerDep, pagination: PaginationDep
 ) -> list[TournamentRegistration]:
     """
     List all registrations for a tournament.
@@ -133,8 +128,7 @@ async def list_registrations(
         await data_layer.tournaments.get_by_id(tournament_id)
     except NotFoundError:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Tournament {tournament_id} not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail=f"Tournament {tournament_id} not found"
         ) from None
 
     # List all registrations (no status filter to include dropped players)
@@ -147,11 +141,7 @@ async def list_registrations(
 
 
 @router.delete("/{tournament_id}/registrations/{player_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def drop_player(
-    tournament_id: UUID,
-    player_id: UUID,
-    data_layer: DataLayerDep
-) -> None:
+async def drop_player(tournament_id: UUID, player_id: UUID, data_layer: DataLayerDep) -> None:
     """
     Drop a player from a tournament.
 
@@ -163,8 +153,7 @@ async def drop_player(
         await data_layer.tournaments.get_by_id(tournament_id)
     except NotFoundError:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Tournament {tournament_id} not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail=f"Tournament {tournament_id} not found"
         ) from None
 
     # Get registration
@@ -174,7 +163,7 @@ async def drop_player(
     if not registration:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Player {player_id} is not registered for tournament {tournament_id}"
+            detail=f"Player {player_id} is not registered for tournament {tournament_id}",
         )
 
     # Update registration status to DROPPED

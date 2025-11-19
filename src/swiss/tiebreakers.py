@@ -18,14 +18,10 @@ def is_bye_match(match: Match) -> bool:
     return match.player2_id is None
 
 
-def get_player_matches(
-    player: TournamentRegistration, matches: list[Match]
-) -> list[Match]:
+def get_player_matches(player: TournamentRegistration, matches: list[Match]) -> list[Match]:
     """Get all matches for a specific player."""
     return [
-        m
-        for m in matches
-        if m.player1_id == player.player_id or m.player2_id == player.player_id
+        m for m in matches if m.player1_id == player.player_id or m.player2_id == player.player_id
     ]
 
 
@@ -57,9 +53,7 @@ def get_match_result_for_player(
     return (0, 0, 1)  # Draw (equal wins)
 
 
-def get_game_result_for_player(
-    player: TournamentRegistration, match: Match
-) -> tuple[int, int]:
+def get_game_result_for_player(player: TournamentRegistration, match: Match) -> tuple[int, int]:
     """
     Get game results from player's perspective.
 
@@ -211,17 +205,13 @@ def calculate_opponent_match_win_percentage(
 
     for opponent_id in opponent_ids:
         # Find opponent registration
-        opponent = next(
-            (reg for reg in all_registrations if reg.player_id == opponent_id), None
-        )
+        opponent = next((reg for reg in all_registrations if reg.player_id == opponent_id), None)
 
         if opponent is None:
             continue  # Skip if opponent not found
 
         # Calculate opponent's MW%
-        opponent_mw = calculate_match_win_percentage(
-            opponent, matches, all_registrations, config
-        )
+        opponent_mw = calculate_match_win_percentage(opponent, matches, all_registrations, config)
         opponent_mw_pcts.append(opponent_mw)
 
     if not opponent_mw_pcts:
@@ -270,17 +260,13 @@ def calculate_opponent_game_win_percentage(
 
     for opponent_id in opponent_ids:
         # Find opponent registration
-        opponent = next(
-            (reg for reg in all_registrations if reg.player_id == opponent_id), None
-        )
+        opponent = next((reg for reg in all_registrations if reg.player_id == opponent_id), None)
 
         if opponent is None:
             continue  # Skip if opponent not found
 
         # Calculate opponent's GW%
-        opponent_gw = calculate_game_win_percentage(
-            opponent, matches, all_registrations, config
-        )
+        opponent_gw = calculate_game_win_percentage(opponent, matches, all_registrations, config)
         opponent_gw_pcts.append(opponent_gw)
 
     if not opponent_gw_pcts:

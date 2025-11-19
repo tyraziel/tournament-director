@@ -68,9 +68,11 @@ class DatabaseComponentRepository(ComponentRepository):
 
     async def list_by_tournament(self, tournament_id: UUID) -> list[Component]:
         """List components for a tournament, ordered by sequence_order."""
-        stmt = select(ComponentModel).where(
-            ComponentModel.tournament_id == tournament_id
-        ).order_by(ComponentModel.sequence_order)
+        stmt = (
+            select(ComponentModel)
+            .where(ComponentModel.tournament_id == tournament_id)
+            .order_by(ComponentModel.sequence_order)
+        )
 
         result = await self.session.execute(stmt)
         db_components = result.scalars().all()
@@ -83,7 +85,7 @@ class DatabaseComponentRepository(ComponentRepository):
         """Get component by tournament and sequence order. Returns None if not found."""
         stmt = select(ComponentModel).where(
             ComponentModel.tournament_id == tournament_id,
-            ComponentModel.sequence_order == sequence_order
+            ComponentModel.sequence_order == sequence_order,
         )
         result = await self.session.execute(stmt)
         db_component = result.scalar_one_or_none()

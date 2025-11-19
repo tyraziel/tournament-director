@@ -284,9 +284,7 @@ def test_tiebreaker_omw_primary(tiebreaker_triangle_tournament):
     config = data["component"].config.copy()
     config["standings_tiebreakers"] = ["omw", "gw", "ogw", "random"]
 
-    standings = calculate_standings(
-        list(data["registrations"].values()), data["matches"], config
-    )
+    standings = calculate_standings(list(data["registrations"].values()), data["matches"], config)
 
     # Extract 2-1 players (ranks 1-3)
     top_three = standings[:3]
@@ -317,9 +315,7 @@ def test_tiebreaker_gw_primary(tiebreaker_triangle_tournament):
     config = data["component"].config.copy()
     config["standings_tiebreakers"] = ["gw", "omw", "ogw", "random"]
 
-    standings = calculate_standings(
-        list(data["registrations"].values()), data["matches"], config
-    )
+    standings = calculate_standings(list(data["registrations"].values()), data["matches"], config)
 
     top_three = standings[:3]
 
@@ -353,9 +349,7 @@ def test_tiebreaker_match_wins_primary(tiebreaker_triangle_tournament):
     config = data["component"].config.copy()
     config["standings_tiebreakers"] = ["match_wins", "game_wins", "random"]
 
-    standings = calculate_standings(
-        list(data["registrations"].values()), data["matches"], config
-    )
+    standings = calculate_standings(list(data["registrations"].values()), data["matches"], config)
 
     top_three = standings[:3]
 

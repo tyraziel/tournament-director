@@ -62,9 +62,7 @@ class DatabaseFormatRepository(FormatRepository):
             description=db_format.description,
         )
 
-    async def get_by_name(
-        self, name: str, game_system: str | None = None
-    ) -> Format | None:
+    async def get_by_name(self, name: str, game_system: str | None = None) -> Format | None:
         """Get format by name and optionally game system. Returns None if not found."""
         stmt = select(FormatModel).where(FormatModel.name == name)
         if game_system:

@@ -257,19 +257,12 @@ class DatabaseDataLayer(DataLayer):
             # Try to execute a simple query
             async with self.db.session() as session:
                 from sqlalchemy import text
+
                 result = await session.execute(text("SELECT 1"))
                 result.fetchone()
 
             db_url = self.db.database_url
             masked_url = db_url.split("@")[-1] if "@" in db_url else db_url
-            return {
-                "status": "healthy",
-                "database_url": masked_url,
-                "connection": "active"
-            }
+            return {"status": "healthy", "database_url": masked_url, "connection": "active"}
         except Exception as e:
-            return {
-                "status": "unhealthy",
-                "error": str(e),
-                "connection": "failed"
-            }
+            return {"status": "unhealthy", "error": str(e), "connection": "failed"}

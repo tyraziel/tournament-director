@@ -90,9 +90,7 @@ async def list_tournaments(
 
 
 @router.get("/{tournament_id}", response_model=Tournament)
-async def get_tournament(
-    tournament_id: UUID, data_layer: DataLayerDep
-) -> Tournament:
+async def get_tournament(tournament_id: UUID, data_layer: DataLayerDep) -> Tournament:
     """
     Get tournament by ID.
 
@@ -161,9 +159,7 @@ async def update_tournament(
 
 
 @router.delete("/{tournament_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_tournament(
-    tournament_id: UUID, data_layer: DataLayerDep
-) -> None:
+async def delete_tournament(tournament_id: UUID, data_layer: DataLayerDep) -> None:
     """
     Delete tournament by ID.
 
@@ -236,9 +232,7 @@ async def list_tournaments_by_format(
 
 
 @router.post("/{tournament_id}/start", response_model=Tournament)
-async def start_tournament_endpoint(
-    tournament_id: UUID, data_layer: DataLayerDep
-) -> Tournament:
+async def start_tournament_endpoint(tournament_id: UUID, data_layer: DataLayerDep) -> Tournament:
     """
     Start a tournament: transition from DRAFT/REGISTRATION_CLOSED → IN_PROGRESS.
 
@@ -300,9 +294,7 @@ async def start_tournament_endpoint(
 
 
 @router.post("/{tournament_id}/complete", response_model=Tournament)
-async def complete_tournament_endpoint(
-    tournament_id: UUID, data_layer: DataLayerDep
-) -> Tournament:
+async def complete_tournament_endpoint(tournament_id: UUID, data_layer: DataLayerDep) -> Tournament:
     """
     Complete a tournament: transition from IN_PROGRESS → COMPLETED.
 

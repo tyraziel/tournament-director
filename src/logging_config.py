@@ -17,8 +17,7 @@ DEFAULT_FORMAT = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 
 # Detailed format for file logging (includes function name and line number)
 DETAILED_FORMAT = (
-    "%(asctime)s - %(name)s - %(levelname)s - "
-    "%(filename)s:%(lineno)d - %(funcName)s - %(message)s"
+    "%(asctime)s - %(name)s - %(levelname)s - %(filename)s:%(lineno)d - %(funcName)s - %(message)s"
 )
 
 
@@ -54,8 +53,7 @@ def setup_logging(
 
     # Select format
     formatter = logging.Formatter(
-        DETAILED_FORMAT if detailed else DEFAULT_FORMAT,
-        datefmt="%Y-%m-%d %H:%M:%S"
+        DETAILED_FORMAT if detailed else DEFAULT_FORMAT, datefmt="%Y-%m-%d %H:%M:%S"
     )
 
     # Console handler (stdout)

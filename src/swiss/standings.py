@@ -112,6 +112,7 @@ def calculate_standings(
             if tb_name == "random":
                 # Random tiebreaker - just use a random value
                 import random
+
                 tiebreaker_values[tb_name] = random.random()  # noqa: S311
             elif tb_name in TIEBREAKER_CALCULATORS:
                 calculator = TIEBREAKER_CALCULATORS[tb_name]

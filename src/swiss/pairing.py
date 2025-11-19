@@ -50,7 +50,8 @@ def pair_round_1(
 
     # Filter to only active players
     active_players = [
-        reg for reg in registrations
+        reg
+        for reg in registrations
         if reg.status.value == "active"  # PlayerStatus.ACTIVE
     ]
 
@@ -62,9 +63,7 @@ def pair_round_1(
 
     # Minimum tournament size: 2 players
     if len(active_players) < 2:
-        logger.error(
-            f"Insufficient players: {len(active_players)} active, minimum 2 required"
-        )
+        logger.error(f"Insufficient players: {len(active_players)} active, minimum 2 required")
         raise ValueError(
             f"Swiss tournament requires at least 2 players. "
             f"Currently have {len(active_players)} active player(s)."
@@ -109,8 +108,7 @@ def pair_round_1(
     if len(players) % 2 == 1:
         bye_player = players[-1]  # Last player gets bye
         logger.info(
-            f"Round 1: Odd player count, assigning bye to "
-            f"player=seq#{bye_player.sequence_id}"
+            f"Round 1: Odd player count, assigning bye to player=seq#{bye_player.sequence_id}"
         )
         bye_match = Match(
             id=uuid4(),
@@ -230,10 +228,7 @@ def pair_round(
     )
 
     # Filter to only active players
-    active_players = [
-        reg for reg in registrations
-        if reg.status.value == "active"
-    ]
+    active_players = [reg for reg in registrations if reg.status.value == "active"]
 
     dropped_count = len(registrations) - len(active_players)
     if dropped_count > 0:
@@ -364,8 +359,7 @@ def pair_round(
         )
         new_matches.append(bye_match)
         logger.debug(
-            f"Round {round_number}: Bye match added for "
-            f"player=seq#{bye_player.player.sequence_id}"
+            f"Round {round_number}: Bye match added for player=seq#{bye_player.player.sequence_id}"
         )
 
     regular_count = len([m for m in new_matches if m.player2_id is not None])
@@ -401,10 +395,8 @@ def _raise_impossible_pairing_error(
     # Check if these players have all played each other
     all_played_each_other = True
     for i, player1 in enumerate(unpaired_players):
-        for player2 in unpaired_players[i + 1:]:
-            if player2.player.player_id not in pairing_history.get(
-                player1.player.player_id, set()
-            ):
+        for player2 in unpaired_players[i + 1 :]:
+            if player2.player.player_id not in pairing_history.get(player1.player.player_id, set()):
                 all_played_each_other = False
                 break
         if not all_played_each_other:
@@ -473,8 +465,7 @@ def _select_bye_player(
 
     # Get players with minimum byes (reverse order = lowest ranked first)
     candidates = [
-        s for s in reversed(standings)
-        if bye_counts.get(s.player.player_id, 0) == min_byes
+        s for s in reversed(standings) if bye_counts.get(s.player.player_id, 0) == min_byes
     ]
 
     # Return lowest-ranked candidate
@@ -565,9 +556,7 @@ def _pair_bracket(
         opponent_idx = None
         for idx, player2 in enumerate(available):
             # Check if they've already played
-            if player2.player.player_id not in pairing_history.get(
-                player1.player.player_id, set()
-            ):
+            if player2.player.player_id not in pairing_history.get(player1.player.player_id, set()):
                 opponent_idx = idx
                 break
 

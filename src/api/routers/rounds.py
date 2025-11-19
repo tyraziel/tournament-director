@@ -28,9 +28,7 @@ router = APIRouter(prefix="/tournaments")
     status_code=status.HTTP_201_CREATED,
 )
 async def pair_round_endpoint(
-    tournament_id: UUID,
-    round_number: int,
-    data_layer: DataLayerDep
+    tournament_id: UUID, round_number: int, data_layer: DataLayerDep
 ) -> Round:
     """
     Generate pairings for a round.
@@ -46,8 +44,7 @@ async def pair_round_endpoint(
         tournament = await data_layer.tournaments.get_by_id(tournament_id)
     except NotFoundError:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Tournament {tournament_id} not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail=f"Tournament {tournament_id} not found"
         ) from None
 
     if tournament.status != TournamentStatus.IN_PROGRESS:
@@ -55,8 +52,7 @@ async def pair_round_endpoint(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=(
-                f"Tournament must be IN_PROGRESS to pair rounds "
-                f"(current status: {current_status})"
+                f"Tournament must be IN_PROGRESS to pair rounds (current status: {current_status})"
             ),
         )
 
@@ -70,7 +66,7 @@ async def pair_round_endpoint(
         if existing_matches:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
-                detail=f"Round {round_number} already has pairings"
+                detail=f"Round {round_number} already has pairings",
             )
         # Round exists but no matches yet - use existing round
         round_obj = existing_round
@@ -85,7 +81,7 @@ async def pair_round_endpoint(
     if not components:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Tournament has no components - cannot generate pairings"
+            detail="Tournament has no components - cannot generate pairings",
         )
     component = components[0]  # Use first component (Swiss)
 
@@ -97,7 +93,7 @@ async def pair_round_endpoint(
     if len(registrations) < 2:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Need at least 2 active players to generate pairings"
+            detail="Need at least 2 active players to generate pairings",
         )
 
     # Generate pairings based on round number
@@ -118,7 +114,7 @@ async def pair_round_endpoint(
             component_id=component.id,
             round_number=round_number,
             start_time=datetime.now(timezone.utc),
-            status=RoundStatus.ACTIVE
+            status=RoundStatus.ACTIVE,
         )
         created_round = await data_layer.rounds.create(round_obj)
     else:
@@ -135,11 +131,7 @@ async def pair_round_endpoint(
 
 
 @router.get("/{tournament_id}/rounds/{round_number}", response_model=Round)
-async def get_round(
-    tournament_id: UUID,
-    round_number: int,
-    data_layer: DataLayerDep
-) -> Round:
+async def get_round(tournament_id: UUID, round_number: int, data_layer: DataLayerDep) -> Round:
     """
     Get round details by tournament and round number.
 
@@ -151,8 +143,7 @@ async def get_round(
         await data_layer.tournaments.get_by_id(tournament_id)
     except NotFoundError:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Tournament {tournament_id} not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail=f"Tournament {tournament_id} not found"
         ) from None
 
     # Get round by tournament and round number
@@ -162,18 +153,14 @@ async def get_round(
     if not round_obj:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Round {round_number} not found in tournament {tournament_id}"
+            detail=f"Round {round_number} not found in tournament {tournament_id}",
         )
 
     return round_obj
 
 
 @router.post("/{tournament_id}/rounds/{round_number}/complete", response_model=Round)
-async def complete_round(
-    tournament_id: UUID,
-    round_number: int,
-    data_layer: DataLayerDep
-) -> Round:
+async def complete_round(tournament_id: UUID, round_number: int, data_layer: DataLayerDep) -> Round:
     """
     Mark a round as complete.
 
@@ -187,8 +174,7 @@ async def complete_round(
 
     if not round_obj:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Round {round_number} not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail=f"Round {round_number} not found"
         )
 
     # Check all matches have results
@@ -198,7 +184,7 @@ async def complete_round(
     if incomplete_matches:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Cannot complete round: {len(incomplete_matches)} matches still in progress"
+            detail=f"Cannot complete round: {len(incomplete_matches)} matches still in progress",
         )
 
     # Update round status
@@ -209,10 +195,7 @@ async def complete_round(
 
 
 @router.get("/{tournament_id}/standings", response_model=list[APIStandingsEntry])
-async def get_standings(
-    tournament_id: UUID,
-    data_layer: DataLayerDep
-) -> list[APIStandingsEntry]:
+async def get_standings(tournament_id: UUID, data_layer: DataLayerDep) -> list[APIStandingsEntry]:
     """
     Calculate and return current tournament standings.
 
@@ -227,8 +210,7 @@ async def get_standings(
         await data_layer.tournaments.get_by_id(tournament_id)
     except NotFoundError:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Tournament {tournament_id} not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail=f"Tournament {tournament_id} not found"
         ) from None
 
     # Get all registrations (including dropped players)
@@ -273,7 +255,7 @@ async def get_standings(
             match_win_percentage=mw_pct,
             game_win_percentage=gw_pct,
             opponent_match_win_percentage=omw_pct,
-            opponent_game_win_percentage=ogw_pct
+            opponent_game_win_percentage=ogw_pct,
         )
         api_standings.append(api_entry)
 

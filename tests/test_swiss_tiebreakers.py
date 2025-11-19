@@ -646,9 +646,7 @@ def test_omw_simple_case(base_tournament_data):
     config = {"omw_floor": 0.33}
 
     # Player A's opponents: B (0-3 = 0% → 33% floor), C (2-1 = 66.67%), D (1-2 = 33%)
-    omw_pct = calculate_opponent_match_win_percentage(
-        player_a, matches, all_registrations, config
-    )
+    omw_pct = calculate_opponent_match_win_percentage(player_a, matches, all_registrations, config)
 
     # (33 + 66.67 + 33) / 3 = 44.22%
     assert omw_pct == pytest.approx(0.4422, abs=0.01)
@@ -702,9 +700,7 @@ def test_omw_excludes_byes(base_tournament_data):
     all_registrations = [player, opponent]
     config = {"omw_floor": 0.33}
 
-    omw_pct = calculate_opponent_match_win_percentage(
-        player, matches, all_registrations, config
-    )
+    omw_pct = calculate_opponent_match_win_percentage(player, matches, all_registrations, config)
 
     # Only 1 opponent (not bye): opponent at 0-1 = 33% (floor)
     # OMW% = 33%
@@ -833,9 +829,7 @@ def test_ogw_simple_case(base_tournament_data):
     # - C: 1 game win, 4 game losses = 1/5 = 20% → 33% floor
     # OGW% = (50 + 33) / 2 = 41.5%
 
-    ogw_pct = calculate_opponent_game_win_percentage(
-        player_a, matches, all_registrations, config
-    )
+    ogw_pct = calculate_opponent_game_win_percentage(player_a, matches, all_registrations, config)
 
     assert ogw_pct == pytest.approx(0.415, abs=0.01)
 

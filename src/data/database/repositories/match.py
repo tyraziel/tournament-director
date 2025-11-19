@@ -79,9 +79,11 @@ class DatabaseMatchRepository(MatchRepository):
 
     async def list_by_tournament(self, tournament_id: UUID) -> list[Match]:
         """List matches for a tournament, ordered by round number."""
-        stmt = select(MatchModel).where(
-            MatchModel.tournament_id == tournament_id
-        ).order_by(MatchModel.round_number, MatchModel.table_number)
+        stmt = (
+            select(MatchModel)
+            .where(MatchModel.tournament_id == tournament_id)
+            .order_by(MatchModel.round_number, MatchModel.table_number)
+        )
 
         result = await self.session.execute(stmt)
         db_matches = result.scalars().all()
@@ -90,9 +92,11 @@ class DatabaseMatchRepository(MatchRepository):
 
     async def list_by_round(self, round_id: UUID) -> list[Match]:
         """List matches for a round, ordered by table number."""
-        stmt = select(MatchModel).where(
-            MatchModel.round_id == round_id
-        ).order_by(MatchModel.table_number)
+        stmt = (
+            select(MatchModel)
+            .where(MatchModel.round_id == round_id)
+            .order_by(MatchModel.table_number)
+        )
 
         result = await self.session.execute(stmt)
         db_matches = result.scalars().all()
@@ -101,9 +105,11 @@ class DatabaseMatchRepository(MatchRepository):
 
     async def list_by_component(self, component_id: UUID) -> list[Match]:
         """List matches for a component, ordered by round and table number."""
-        stmt = select(MatchModel).where(
-            MatchModel.component_id == component_id
-        ).order_by(MatchModel.round_number, MatchModel.table_number)
+        stmt = (
+            select(MatchModel)
+            .where(MatchModel.component_id == component_id)
+            .order_by(MatchModel.round_number, MatchModel.table_number)
+        )
 
         result = await self.session.execute(stmt)
         db_matches = result.scalars().all()
@@ -115,10 +121,7 @@ class DatabaseMatchRepository(MatchRepository):
     ) -> list[Match]:
         """List matches for a player, optionally filtered by tournament."""
         stmt = select(MatchModel).where(
-            or_(
-                MatchModel.player1_id == player_id,
-                MatchModel.player2_id == player_id
-            )
+            or_(MatchModel.player1_id == player_id, MatchModel.player2_id == player_id)
         )
         if tournament_id:
             stmt = stmt.where(MatchModel.tournament_id == tournament_id)
