@@ -35,7 +35,8 @@ The VCL is a novelty license created for fun and cultural purposes with no legal
 10. [Code Quality Standards](#code-quality-standards)
 11. [Project-Specific Conventions](#project-specific-conventions)
 12. [Development Environment](#development-environment)
-13. [Development Workflow](#development-workflow)
+13. [Python Version Support Policy](#python-version-support-policy)
+14. [Development Workflow](#development-workflow)
 
 ---
 
@@ -1179,6 +1180,44 @@ except ImportError:
 ```
 
 **See `AI_ENVIRONMENT.md` for detailed setup instructions and troubleshooting.**
+
+---
+
+## Python Version Support Policy
+
+Tournament Director supports **Python 3.10, 3.11, and 3.12** in CI/CD and production deployments.
+
+### Quick Reference
+
+| Version | EOL Date | Status | CI Support |
+|---------|----------|--------|------------|
+| 3.10 | Oct 2026 | Security fixes only | ✅ Supported |
+| 3.11 | Oct 2027 | Security fixes only | ✅ Supported |
+| 3.12 | Oct 2028 | Security fixes only | ✅ Supported |
+| 3.13 | Oct 2029 | Bugfix | ❌ Not yet (no binary wheels) |
+| 3.14 | Oct 2030 | Pre-release | ❌ Not supported |
+
+### Why These Versions?
+
+- **EOL Coverage**: 1-6 years of security support remaining
+- **Package Compatibility**: Pre-built binary wheels for all C extensions (`asyncpg`, `greenlet`, etc.)
+- **CI Efficiency**: Fast installation without compilation overhead
+- **Production Ready**: Stable, proven releases in security-maintenance phase
+
+### Why Not Python 3.13 or 3.14?
+
+**Python 3.13**: Temporarily excluded due to missing binary wheels for `asyncpg` and `greenlet`. Will be added when packages publish pre-built wheels (estimated Q2 2025).
+
+**Python 3.14**: Pre-release (alpha/beta) as of November 2025. Will be added 6+ months after stable release.
+
+### Detailed Documentation
+
+See **[PYTHON_VERSION_POLICY.md](PYTHON_VERSION_POLICY.md)** for:
+- Complete EOL schedule and support phases
+- Version selection criteria and rationale
+- CI/CD configuration details
+- Version addition/removal procedures
+- Quarterly review schedule
 
 ---
 

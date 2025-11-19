@@ -1,5 +1,10 @@
 # Tournament Director CI Pipeline
 # AIA PAI Hin R Claude Code v1.0 // AIA Primarily AI, Human-initiated, Reviewed, Claude Code v1.0
+#
+# Python Version Policy:
+# - Supported: 3.10 (EOL Oct 2026), 3.11 (EOL Oct 2027), 3.12 (EOL Oct 2028)
+# - Not yet: 3.13 (missing binary wheels for asyncpg, greenlet)
+# - See PYTHON_VERSION_POLICY.md for details
 
 name: CI
 
