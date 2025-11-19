@@ -418,7 +418,7 @@ class TestTournamentEndpoints:
         venue_id = venue_response.json()["id"]
 
         format_response = await client.post("/formats/", json={
-            "name": "Pauper",
+            "name": "Pauper for Tournament Create Test",
             "game_system": "magic_the_gathering",
             "base_format": "constructed",
             "card_pool": "Common only"
