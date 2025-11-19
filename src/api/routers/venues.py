@@ -108,7 +108,7 @@ async def get_venue(
         404: Venue not found
     """
     try:
-        venue = await data_layer.venues.get(venue_id)
+        venue = await data_layer.venues.get_by_id(venue_id)
         return venue
     except NotFoundError:
         raise HTTPException(
@@ -145,7 +145,7 @@ async def update_venue(
     """
     try:
         # Get existing venue
-        existing_venue = await data_layer.venues.get(venue_id)
+        existing_venue = await data_layer.venues.get_by_id(venue_id)
 
         # Apply updates (only non-None fields)
         update_dict = venue_data.model_dump(exclude_unset=True)

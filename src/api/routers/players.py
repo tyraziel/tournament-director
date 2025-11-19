@@ -69,8 +69,10 @@ async def create_player(
     Raises:
         409: Player with same discord_id or email already exists
     """
+    from uuid import uuid4
+
     # Convert PlayerCreate to Player (generates UUID)
-    player = Player(**player_data.model_dump())
+    player = Player(id=uuid4(), **player_data.model_dump())
 
     try:
         created_player = await data_layer.players.create(player)
@@ -106,7 +108,7 @@ async def get_player(
         404: Player not found
     """
     try:
-        player = await data_layer.players.get(player_id)
+        player = await data_layer.players.get_by_id(player_id)
         return player
     except NotFoundError:
         raise HTTPException(
@@ -143,7 +145,7 @@ async def update_player(
     """
     try:
         # Get existing player
-        existing_player = await data_layer.players.get(player_id)
+        existing_player = await data_layer.players.get_by_id(player_id)
 
         # Apply updates (only non-None fields)
         update_dict = player_data.model_dump(exclude_unset=True)
@@ -254,11 +256,10 @@ async def get_player_by_discord_id(
     Raises:
         404: Player not found
     """
-    try:
-        player = await data_layer.players.get_by_discord_id(discord_id)
-        return player
-    except NotFoundError:
+    player = await data_layer.players.get_by_discord_id(discord_id)
+    if player is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Player with Discord ID {discord_id} not found",
         )
+    return player
