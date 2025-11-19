@@ -22,11 +22,26 @@ from src.models.base import TournamentStatus, TournamentVisibility, PlayerStatus
 
 
 # Database URL fixtures for different databases
-@pytest.fixture(params=["sqlite", "postgresql"])  # Testing SQLite and PostgreSQL
+@pytest.fixture(params=["sqlite", "postgresql"])  # Currently testing SQLite and PostgreSQL
 def database_url(request):
     """Provide database URLs for testing.
 
-    Testing SQLite and PostgreSQL. MySQL/MariaDB to be added next.
+    Currently testing: SQLite (in-memory) and PostgreSQL (via Unix socket)
+
+    MySQL/MariaDB Support:
+    ----------------------
+    Our custom UUID and JSON types (src/data/database/types.py) are fully compatible
+    with MySQL 5.7+ and MariaDB 10.2+:
+    - UUID: Uses CHAR(36) storage for cross-compatibility
+    - JSON: Uses native JSON type (MySQL 5.7+, MariaDB 10.2+)
+
+    To test with MySQL/MariaDB when available:
+    1. Uncomment the mysql/mariadb parameters below
+    2. Install and configure MySQL/MariaDB server
+    3. Create test database: CREATE DATABASE tournament_director;
+    4. Update connection credentials as needed
+
+    Note: MySQL and MariaDB use the same aiomysql driver and dialect handling.
     """
     if request.param == "sqlite":
         # Use in-memory SQLite for fast testing
@@ -34,11 +49,13 @@ def database_url(request):
     elif request.param == "postgresql":
         # PostgreSQL with Unix socket connection
         return "postgresql+asyncpg://postgres@/tournament_director?host=/tmp/pg_socket"
-    # TODO: Add after PostgreSQL tests pass
+    # TODO: Requires MySQL/MariaDB installation (not available in current environment)
     # elif request.param == "mysql":
-    #     return "mysql+aiomysql://test:test@localhost/test_tournament_director"
+    #     # MySQL 5.7+ via aiomysql
+    #     return "mysql+aiomysql://test:test@localhost/tournament_director"
     # elif request.param == "mariadb":
-    #     return "mariadb+aiomysql://test:test@localhost/test_tournament_director"
+    #     # MariaDB 10.2+ via aiomysql (same driver as MySQL)
+    #     return "mariadb+aiomysql://test:test@localhost/tournament_director"
 
 
 @pytest_asyncio.fixture
