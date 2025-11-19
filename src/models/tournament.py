@@ -83,9 +83,20 @@ class TournamentUpdate(BaseModel):
     description: str | None = None
     registration_deadline: datetime | None = None
     auto_advance_rounds: bool | None = None
-    
+
     # Registration control
     registration_auto_open_time: datetime | None = None
     registration_auto_close_time: datetime | None = None
     registration_password: str | None = None
     max_players: int | None = None
+
+
+class PlayerRegistrationCreate(BaseModel):
+    """Player registration request model for API.
+
+    AIA EAI Hin R Claude Code [Sonnet 4.5] v1.0
+    """
+
+    player_id: UUID
+    password: str | None = None  # For password-protected tournaments
+    notes: str | None = None  # Optional registration notes
