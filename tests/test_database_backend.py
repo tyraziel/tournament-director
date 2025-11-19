@@ -22,18 +22,19 @@ from src.models.base import TournamentStatus, TournamentVisibility, PlayerStatus
 
 
 # Database URL fixtures for different databases
-@pytest.fixture(params=["sqlite"])  # Start with SQLite only
+@pytest.fixture(params=["sqlite", "postgresql"])  # Testing SQLite and PostgreSQL
 def database_url(request):
     """Provide database URLs for testing.
 
-    Initially tests SQLite only. Add PostgreSQL, MySQL, MariaDB after SQLite passes.
+    Testing SQLite and PostgreSQL. MySQL/MariaDB to be added next.
     """
     if request.param == "sqlite":
         # Use in-memory SQLite for fast testing
         return "sqlite+aiosqlite:///:memory:"
-    # TODO: Add after SQLite tests pass
-    # elif request.param == "postgresql":
-    #     return "postgresql+asyncpg://test:test@localhost/test_tournament_director"
+    elif request.param == "postgresql":
+        # PostgreSQL with Unix socket connection
+        return "postgresql+asyncpg://postgres@/tournament_director?host=/tmp/pg_socket"
+    # TODO: Add after PostgreSQL tests pass
     # elif request.param == "mysql":
     #     return "mysql+aiomysql://test:test@localhost/test_tournament_director"
     # elif request.param == "mariadb":
