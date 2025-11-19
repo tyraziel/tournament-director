@@ -456,3 +456,160 @@ class TestOpenAPISchema:
         assert "responses" in drop
         assert "204" in drop["responses"]  # No content
         assert "422" in drop["responses"]
+
+    def test_rounds_endpoints(self):
+        """Test that rounds and pairings endpoints are documented.
+
+        AIA EAI Hin R Claude Code [Sonnet 4.5] v1.0
+        """
+        schema = app.openapi()
+        paths = schema["paths"]
+
+        # POST /tournaments/{tournament_id}/rounds/{round_number}/pair
+        assert "/tournaments/{tournament_id}/rounds/{round_number}/pair" in paths
+        pair_path = paths["/tournaments/{tournament_id}/rounds/{round_number}/pair"]
+        assert "post" in pair_path
+        assert pair_path["post"]["tags"] == ["Rounds"]
+
+        # GET /tournaments/{tournament_id}/rounds/{round_number}
+        assert "/tournaments/{tournament_id}/rounds/{round_number}" in paths
+        get_round_path = paths["/tournaments/{tournament_id}/rounds/{round_number}"]
+        assert "get" in get_round_path
+        assert get_round_path["get"]["tags"] == ["Rounds"]
+
+        # POST /tournaments/{tournament_id}/rounds/{round_number}/complete
+        assert "/tournaments/{tournament_id}/rounds/{round_number}/complete" in paths
+        complete_path = paths["/tournaments/{tournament_id}/rounds/{round_number}/complete"]
+        assert "post" in complete_path
+        assert complete_path["post"]["tags"] == ["Rounds"]
+
+        # GET /tournaments/{tournament_id}/standings
+        assert "/tournaments/{tournament_id}/standings" in paths
+        standings_path = paths["/tournaments/{tournament_id}/standings"]
+        assert "get" in standings_path
+        assert standings_path["get"]["tags"] == ["Rounds"]
+
+    def test_matches_endpoints(self):
+        """Test that match management endpoints are documented.
+
+        AIA EAI Hin R Claude Code [Sonnet 4.5] v1.0
+        """
+        schema = app.openapi()
+        paths = schema["paths"]
+
+        # GET /tournaments/{tournament_id}/matches
+        assert "/tournaments/{tournament_id}/matches" in paths
+        list_matches_path = paths["/tournaments/{tournament_id}/matches"]
+        assert "get" in list_matches_path
+        assert list_matches_path["get"]["tags"] == ["Matches"]
+
+        # GET /matches/{match_id}
+        assert "/matches/{match_id}" in paths
+        get_match_path = paths["/matches/{match_id}"]
+        assert "get" in get_match_path
+        assert get_match_path["get"]["tags"] == ["Matches"]
+
+        # PUT /matches/{match_id}/result
+        assert "/matches/{match_id}/result" in paths
+        submit_result_path = paths["/matches/{match_id}/result"]
+        assert "put" in submit_result_path
+        assert submit_result_path["put"]["tags"] == ["Matches"]
+
+    def test_rounds_and_matches_models(self):
+        """Test that rounds and matches models are defined in schema.
+
+        AIA EAI Hin R Claude Code [Sonnet 4.5] v1.0
+        """
+        schema = app.openapi()
+        schemas = schema["components"]["schemas"]
+
+        # Round model
+        assert "Round" in schemas
+        round_model = schemas["Round"]
+        assert "properties" in round_model
+        assert "id" in round_model["properties"]
+        assert "tournament_id" in round_model["properties"]
+        assert "round_number" in round_model["properties"]
+        assert "status" in round_model["properties"]
+
+        # Match model
+        assert "Match" in schemas
+        match_model = schemas["Match"]
+        assert "properties" in match_model
+        assert "id" in match_model["properties"]
+        assert "tournament_id" in match_model["properties"]
+        assert "round_id" in match_model["properties"]
+        assert "player1_id" in match_model["properties"]
+        assert "player2_id" in match_model["properties"]
+        assert "player1_wins" in match_model["properties"]
+        assert "player2_wins" in match_model["properties"]
+
+        # MatchResultSubmit model (request body for submitting results)
+        assert "MatchResultSubmit" in schemas
+        result_model = schemas["MatchResultSubmit"]
+        assert "properties" in result_model
+        assert "winner_id" in result_model["properties"]
+        assert "player1_wins" in result_model["properties"]
+        assert "player2_wins" in result_model["properties"]
+        assert "draws" in result_model["properties"]
+
+        # StandingsEntry model (response for standings)
+        assert "StandingsEntry" in schemas
+        standings_model = schemas["StandingsEntry"]
+        assert "properties" in standings_model
+        assert "rank" in standings_model["properties"]
+        assert "player_id" in standings_model["properties"]
+        assert "player_name" in standings_model["properties"]
+        assert "match_points" in standings_model["properties"]
+        assert "match_win_percentage" in standings_model["properties"]
+        assert "opponent_match_win_percentage" in standings_model["properties"]
+
+    def test_rounds_and_matches_response_codes(self):
+        """Test that rounds/matches endpoints document proper response codes.
+
+        AIA EAI Hin R Claude Code [Sonnet 4.5] v1.0
+        """
+        schema = app.openapi()
+        paths = schema["paths"]
+
+        # POST /tournaments/{tournament_id}/rounds/{round_number}/pair - 201, 404, 400, 409
+        pair = paths["/tournaments/{tournament_id}/rounds/{round_number}/pair"]["post"]
+        assert "responses" in pair
+        assert "201" in pair["responses"]  # Created
+        assert "422" in pair["responses"]  # Validation error
+
+        # GET /tournaments/{tournament_id}/rounds/{round_number} - 200, 404
+        get_round = paths["/tournaments/{tournament_id}/rounds/{round_number}"]["get"]
+        assert "responses" in get_round
+        assert "200" in get_round["responses"]
+        assert "422" in get_round["responses"]
+
+        # POST /tournaments/{tournament_id}/rounds/{round_number}/complete - 200, 404, 400
+        complete_round = paths["/tournaments/{tournament_id}/rounds/{round_number}/complete"]["post"]
+        assert "responses" in complete_round
+        assert "200" in complete_round["responses"]
+        assert "422" in complete_round["responses"]
+
+        # GET /tournaments/{tournament_id}/standings - 200, 404
+        standings = paths["/tournaments/{tournament_id}/standings"]["get"]
+        assert "responses" in standings
+        assert "200" in standings["responses"]
+        assert "422" in standings["responses"]
+
+        # GET /tournaments/{tournament_id}/matches - 200, 404
+        list_matches = paths["/tournaments/{tournament_id}/matches"]["get"]
+        assert "responses" in list_matches
+        assert "200" in list_matches["responses"]
+        assert "422" in list_matches["responses"]
+
+        # GET /matches/{match_id} - 200, 404
+        get_match = paths["/matches/{match_id}"]["get"]
+        assert "responses" in get_match
+        assert "200" in get_match["responses"]
+        assert "422" in get_match["responses"]
+
+        # PUT /matches/{match_id}/result - 200, 404, 400
+        submit_result = paths["/matches/{match_id}/result"]["put"]
+        assert "responses" in submit_result
+        assert "200" in submit_result["responses"]
+        assert "422" in submit_result["responses"]
