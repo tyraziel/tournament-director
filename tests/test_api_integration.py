@@ -651,3 +651,427 @@ class TestTournamentEndpoints:
         response = await client.post(f"/tournaments/{tournament_id}/complete")
         assert response.status_code == 400
         assert "no components" in response.json()["detail"]
+
+
+class TestRegistrationEndpoints:
+    """Test registration endpoints.
+
+    AIA EAI Hin R Claude Code [Sonnet 4.5] v1.0
+    """
+
+    @pytest.mark.asyncio
+    async def test_register_player_success(self, client: AsyncClient):
+        """Test successfully registering a player to a tournament."""
+        # Create dependencies
+        player_response = await client.post("/players/", json={"name": "Alice"})
+        player_id = player_response.json()["id"]
+
+        venue_response = await client.post("/venues/", json={
+            "name": "LGS for Registration Test"
+        })
+
+        format_response = await client.post("/formats/", json={
+            "name": "Pauper for Registration Test",
+            "game_system": "magic_the_gathering",
+            "base_format": "constructed",
+            "card_pool": "Common only"
+        })
+
+        tournament_response = await client.post("/tournaments/", json={
+            "name": "Weekly Pauper Registration Test",
+            "format_id": format_response.json()["id"],
+            "venue_id": venue_response.json()["id"],
+            "created_by": player_id
+        })
+        tournament_id = tournament_response.json()["id"]
+
+        # Register player
+        response = await client.post(
+            f"/tournaments/{tournament_id}/register",
+            json={"player_id": player_id}
+        )
+        assert response.status_code == 201
+
+        data = response.json()
+        assert data["tournament_id"] == tournament_id
+        assert data["player_id"] == player_id
+        assert data["sequence_id"] == 1  # First player
+        assert data["status"] == "active"
+        assert "registration_time" in data
+
+    @pytest.mark.asyncio
+    async def test_register_player_with_password(self, client: AsyncClient):
+        """Test registering player to password-protected tournament."""
+        # Create dependencies
+        player_response = await client.post("/players/", json={"name": "Bob Password Test"})
+        player_id = player_response.json()["id"]
+
+        venue_response = await client.post("/venues/", json={
+            "name": "LGS for Password Test"
+        })
+
+        format_response = await client.post("/formats/", json={
+            "name": "Modern for Registration Password Test",
+            "game_system": "magic_the_gathering",
+            "base_format": "constructed",
+            "card_pool": "Modern legal cards"
+        })
+
+        # Create password-protected tournament
+        tournament_response = await client.post("/tournaments/", json={
+            "name": "Password Protected Tournament",
+            "format_id": format_response.json()["id"],
+            "venue_id": venue_response.json()["id"],
+            "created_by": player_id,
+            "registration_password": "secret123"
+        })
+        tournament_id = tournament_response.json()["id"]
+
+        # Register with correct password
+        response = await client.post(
+            f"/tournaments/{tournament_id}/register",
+            json={"player_id": player_id, "password": "secret123"}
+        )
+        assert response.status_code == 201
+
+    @pytest.mark.asyncio
+    async def test_register_player_wrong_password(self, client: AsyncClient):
+        """Test registration fails with wrong password."""
+        # Create dependencies
+        player_response = await client.post("/players/", json={"name": "Charlie Wrong Password Test"})
+        player_id = player_response.json()["id"]
+
+        venue_response = await client.post("/venues/", json={
+            "name": "LGS for Wrong Password Test"
+        })
+
+        format_response = await client.post("/formats/", json={
+            "name": "Standard for Registration Wrong Password Test",
+            "game_system": "magic_the_gathering",
+            "base_format": "constructed",
+            "card_pool": "Standard legal cards"
+        })
+
+        # Create password-protected tournament
+        tournament_response = await client.post("/tournaments/", json={
+            "name": "Password Protected Tournament 2",
+            "format_id": format_response.json()["id"],
+            "venue_id": venue_response.json()["id"],
+            "created_by": player_id,
+            "registration_password": "correct_password"
+        })
+        tournament_id = tournament_response.json()["id"]
+
+        # Try to register with wrong password
+        response = await client.post(
+            f"/tournaments/{tournament_id}/register",
+            json={"player_id": player_id, "password": "wrong_password"}
+        )
+        assert response.status_code == 403
+        assert "password" in response.json()["detail"].lower()
+
+    @pytest.mark.asyncio
+    async def test_register_player_duplicate(self, client: AsyncClient):
+        """Test that duplicate registration is prevented."""
+        # Create dependencies
+        player_response = await client.post("/players/", json={"name": "Diana"})
+        player_id = player_response.json()["id"]
+
+        venue_response = await client.post("/venues/", json={
+            "name": "LGS for Duplicate Test"
+        })
+
+        format_response = await client.post("/formats/", json={
+            "name": "Legacy for Registration Duplicate Test",
+            "game_system": "magic_the_gathering",
+            "base_format": "constructed",
+            "card_pool": "Legacy legal cards"
+        })
+
+        tournament_response = await client.post("/tournaments/", json={
+            "name": "Duplicate Registration Test",
+            "format_id": format_response.json()["id"],
+            "venue_id": venue_response.json()["id"],
+            "created_by": player_id
+        })
+        tournament_id = tournament_response.json()["id"]
+
+        # First registration - should succeed
+        response = await client.post(
+            f"/tournaments/{tournament_id}/register",
+            json={"player_id": player_id}
+        )
+        assert response.status_code == 201
+
+        # Duplicate registration - should fail
+        response = await client.post(
+            f"/tournaments/{tournament_id}/register",
+            json={"player_id": player_id}
+        )
+        assert response.status_code == 409
+        assert "already registered" in response.json()["detail"]
+
+    @pytest.mark.asyncio
+    async def test_register_player_tournament_not_found(self, client: AsyncClient):
+        """Test registration to non-existent tournament."""
+        player_response = await client.post("/players/", json={"name": "Eve"})
+        player_id = player_response.json()["id"]
+
+        fake_tournament_id = str(uuid4())
+        response = await client.post(
+            f"/tournaments/{fake_tournament_id}/register",
+            json={"player_id": player_id}
+        )
+        assert response.status_code == 404
+        assert "tournament" in response.json()["detail"].lower()
+
+    @pytest.mark.asyncio
+    async def test_register_player_player_not_found(self, client: AsyncClient):
+        """Test registration with non-existent player."""
+        # Create tournament dependencies
+        player_response = await client.post("/players/", json={"name": "TO Player"})
+
+        venue_response = await client.post("/venues/", json={
+            "name": "LGS for Player Not Found Test"
+        })
+
+        format_response = await client.post("/formats/", json={
+            "name": "Vintage for Registration Player Not Found Test",
+            "game_system": "magic_the_gathering",
+            "base_format": "constructed",
+            "card_pool": "Vintage legal cards"
+        })
+
+        tournament_response = await client.post("/tournaments/", json={
+            "name": "Player Not Found Test",
+            "format_id": format_response.json()["id"],
+            "venue_id": venue_response.json()["id"],
+            "created_by": player_response.json()["id"]
+        })
+        tournament_id = tournament_response.json()["id"]
+
+        # Try to register non-existent player
+        fake_player_id = str(uuid4())
+        response = await client.post(
+            f"/tournaments/{tournament_id}/register",
+            json={"player_id": fake_player_id}
+        )
+        assert response.status_code == 404
+        assert "player" in response.json()["detail"].lower()
+
+    @pytest.mark.asyncio
+    async def test_register_player_max_players_reached(self, client: AsyncClient):
+        """Test registration when max players is reached."""
+        # Create dependencies
+        to_response = await client.post("/players/", json={"name": "TO for Max Test"})
+
+        venue_response = await client.post("/venues/", json={
+            "name": "LGS for Max Players Test"
+        })
+
+        format_response = await client.post("/formats/", json={
+            "name": "Commander for Registration Max Players Test",
+            "game_system": "magic_the_gathering",
+            "base_format": "constructed",
+            "card_pool": "Commander legal cards"
+        })
+
+        # Create tournament with max_players = 1
+        tournament_response = await client.post("/tournaments/", json={
+            "name": "Max Players Test Tournament",
+            "format_id": format_response.json()["id"],
+            "venue_id": venue_response.json()["id"],
+            "created_by": to_response.json()["id"],
+            "max_players": 1
+        })
+        tournament_id = tournament_response.json()["id"]
+
+        # Register first player (should succeed)
+        player1_response = await client.post("/players/", json={"name": "Max Test Player 1"})
+        response = await client.post(
+            f"/tournaments/{tournament_id}/register",
+            json={"player_id": player1_response.json()["id"]}
+        )
+        assert response.status_code == 201
+
+        # Try to register second player (should fail - max reached)
+        player2_response = await client.post("/players/", json={"name": "Max Test Player 2"})
+        response = await client.post(
+            f"/tournaments/{tournament_id}/register",
+            json={"player_id": player2_response.json()["id"]}
+        )
+        assert response.status_code == 400
+        assert "max" in response.json()["detail"].lower()
+
+    @pytest.mark.asyncio
+    async def test_list_registrations(self, client: AsyncClient):
+        """Test listing all registrations for a tournament."""
+        # Create dependencies
+        to_response = await client.post("/players/", json={"name": "TO for List Test"})
+
+        venue_response = await client.post("/venues/", json={
+            "name": "LGS for List Test"
+        })
+
+        format_response = await client.post("/formats/", json={
+            "name": "Limited for Registration List Test",
+            "game_system": "magic_the_gathering",
+            "base_format": "limited",
+            "card_pool": "Latest set"
+        })
+
+        tournament_response = await client.post("/tournaments/", json={
+            "name": "List Registrations Test",
+            "format_id": format_response.json()["id"],
+            "venue_id": venue_response.json()["id"],
+            "created_by": to_response.json()["id"]
+        })
+        tournament_id = tournament_response.json()["id"]
+
+        # Register multiple players
+        player_ids = []
+        for i in range(3):
+            player_response = await client.post("/players/", json={"name": f"List Test Player {i}"})
+            player_id = player_response.json()["id"]
+            player_ids.append(player_id)
+
+            await client.post(
+                f"/tournaments/{tournament_id}/register",
+                json={"player_id": player_id}
+            )
+
+        # List all registrations
+        response = await client.get(f"/tournaments/{tournament_id}/registrations")
+        assert response.status_code == 200
+
+        data = response.json()
+        assert len(data) == 3
+        assert all(reg["tournament_id"] == tournament_id for reg in data)
+        assert all(reg["status"] == "active" for reg in data)
+
+    @pytest.mark.asyncio
+    async def test_list_registrations_empty(self, client: AsyncClient):
+        """Test listing registrations for tournament with no players."""
+        # Create tournament without registrations
+        to_response = await client.post("/players/", json={"name": "TO for Empty List"})
+
+        venue_response = await client.post("/venues/", json={
+            "name": "LGS for Empty List Test"
+        })
+
+        format_response = await client.post("/formats/", json={
+            "name": "Draft for Registration Empty List Test",
+            "game_system": "magic_the_gathering",
+            "base_format": "limited",
+            "card_pool": "Draft packs"
+        })
+
+        tournament_response = await client.post("/tournaments/", json={
+            "name": "Empty Registrations Test",
+            "format_id": format_response.json()["id"],
+            "venue_id": venue_response.json()["id"],
+            "created_by": to_response.json()["id"]
+        })
+        tournament_id = tournament_response.json()["id"]
+
+        # List registrations (should be empty)
+        response = await client.get(f"/tournaments/{tournament_id}/registrations")
+        assert response.status_code == 200
+        assert response.json() == []
+
+    @pytest.mark.asyncio
+    async def test_list_registrations_tournament_not_found(self, client: AsyncClient):
+        """Test listing registrations for non-existent tournament."""
+        fake_tournament_id = str(uuid4())
+        response = await client.get(f"/tournaments/{fake_tournament_id}/registrations")
+        assert response.status_code == 404
+
+    @pytest.mark.asyncio
+    async def test_drop_player(self, client: AsyncClient):
+        """Test dropping a player from tournament."""
+        # Create dependencies and register player
+        player_response = await client.post("/players/", json={"name": "Frank"})
+        player_id = player_response.json()["id"]
+
+        venue_response = await client.post("/venues/", json={
+            "name": "LGS for Drop Test"
+        })
+
+        format_response = await client.post("/formats/", json={
+            "name": "Sealed for Registration Drop Test",
+            "game_system": "magic_the_gathering",
+            "base_format": "limited",
+            "card_pool": "Sealed packs"
+        })
+
+        tournament_response = await client.post("/tournaments/", json={
+            "name": "Drop Player Test",
+            "format_id": format_response.json()["id"],
+            "venue_id": venue_response.json()["id"],
+            "created_by": player_id
+        })
+        tournament_id = tournament_response.json()["id"]
+
+        # Register player
+        await client.post(
+            f"/tournaments/{tournament_id}/register",
+            json={"player_id": player_id}
+        )
+
+        # Drop player
+        response = await client.delete(
+            f"/tournaments/{tournament_id}/registrations/{player_id}"
+        )
+        assert response.status_code == 204
+
+        # Verify player is dropped
+        registrations = await client.get(f"/tournaments/{tournament_id}/registrations")
+        data = registrations.json()
+        dropped_reg = next((r for r in data if r["player_id"] == player_id), None)
+        assert dropped_reg is not None
+        assert dropped_reg["status"] == "dropped"
+        assert dropped_reg["drop_time"] is not None
+
+    @pytest.mark.asyncio
+    async def test_drop_player_not_registered(self, client: AsyncClient):
+        """Test dropping player who is not registered."""
+        # Create tournament
+        to_response = await client.post("/players/", json={"name": "TO for Drop Not Registered"})
+
+        venue_response = await client.post("/venues/", json={
+            "name": "LGS for Drop Not Registered Test"
+        })
+
+        format_response = await client.post("/formats/", json={
+            "name": "Pioneer for Registration Drop Not Registered",
+            "game_system": "magic_the_gathering",
+            "base_format": "constructed",
+            "card_pool": "Pioneer legal cards"
+        })
+
+        tournament_response = await client.post("/tournaments/", json={
+            "name": "Drop Not Registered Test",
+            "format_id": format_response.json()["id"],
+            "venue_id": venue_response.json()["id"],
+            "created_by": to_response.json()["id"]
+        })
+        tournament_id = tournament_response.json()["id"]
+
+        # Try to drop player who was never registered
+        unregistered_player = await client.post("/players/", json={"name": "Unregistered"})
+        response = await client.delete(
+            f"/tournaments/{tournament_id}/registrations/{unregistered_player.json()['id']}"
+        )
+        assert response.status_code == 404
+
+    @pytest.mark.asyncio
+    async def test_drop_player_tournament_not_found(self, client: AsyncClient):
+        """Test dropping player from non-existent tournament."""
+        player_response = await client.post("/players/", json={"name": "Grace"})
+        player_id = player_response.json()["id"]
+
+        fake_tournament_id = str(uuid4())
+        response = await client.delete(
+            f"/tournaments/{fake_tournament_id}/registrations/{player_id}"
+        )
+        assert response.status_code == 404

@@ -377,3 +377,82 @@ class TestOpenAPISchema:
         assert "draft" in status_values
         assert "in_progress" in status_values
         assert "completed" in status_values
+
+    def test_registration_endpoints(self):
+        """Test that registration endpoints are documented.
+
+        AIA EAI Hin R Claude Code [Sonnet 4.5] v1.0
+        """
+        schema = app.openapi()
+        paths = schema["paths"]
+
+        # POST /tournaments/{tournament_id}/register
+        assert "/tournaments/{tournament_id}/register" in paths
+        register_path = paths["/tournaments/{tournament_id}/register"]
+        assert "post" in register_path
+        assert register_path["post"]["tags"] == ["Registrations"]
+
+        # GET /tournaments/{tournament_id}/registrations
+        assert "/tournaments/{tournament_id}/registrations" in paths
+        list_path = paths["/tournaments/{tournament_id}/registrations"]
+        assert "get" in list_path
+        assert list_path["get"]["tags"] == ["Registrations"]
+
+        # DELETE /tournaments/{tournament_id}/registrations/{player_id}
+        assert "/tournaments/{tournament_id}/registrations/{player_id}" in paths
+        drop_path = paths["/tournaments/{tournament_id}/registrations/{player_id}"]
+        assert "delete" in drop_path
+        assert drop_path["delete"]["tags"] == ["Registrations"]
+
+    def test_registration_models(self):
+        """Test that registration models are defined in schema.
+
+        AIA EAI Hin R Claude Code [Sonnet 4.5] v1.0
+        """
+        schema = app.openapi()
+        schemas = schema["components"]["schemas"]
+
+        # PlayerRegistrationCreate model
+        assert "PlayerRegistrationCreate" in schemas
+        reg_create = schemas["PlayerRegistrationCreate"]
+        assert "properties" in reg_create
+        assert "player_id" in reg_create["properties"]
+        assert "password" in reg_create["properties"]  # Optional
+        assert "notes" in reg_create["properties"]  # Optional
+
+        # TournamentRegistration model (response)
+        assert "TournamentRegistration" in schemas
+        registration = schemas["TournamentRegistration"]
+        assert "properties" in registration
+        assert "id" in registration["properties"]
+        assert "tournament_id" in registration["properties"]
+        assert "player_id" in registration["properties"]
+        assert "sequence_id" in registration["properties"]
+        assert "status" in registration["properties"]
+        assert "registration_time" in registration["properties"]
+
+    def test_registration_response_codes(self):
+        """Test that registration endpoints document proper response codes.
+
+        AIA EAI Hin R Claude Code [Sonnet 4.5] v1.0
+        """
+        schema = app.openapi()
+        paths = schema["paths"]
+
+        # POST /tournaments/{tournament_id}/register - 201, 404, 409, 403, 400
+        register = paths["/tournaments/{tournament_id}/register"]["post"]
+        assert "responses" in register
+        assert "201" in register["responses"]  # Created
+        assert "422" in register["responses"]  # Validation error
+
+        # GET /tournaments/{tournament_id}/registrations - 200, 404
+        list_registrations = paths["/tournaments/{tournament_id}/registrations"]["get"]
+        assert "responses" in list_registrations
+        assert "200" in list_registrations["responses"]
+        assert "422" in list_registrations["responses"]
+
+        # DELETE /tournaments/{tournament_id}/registrations/{player_id} - 204, 404
+        drop = paths["/tournaments/{tournament_id}/registrations/{player_id}"]["delete"]
+        assert "responses" in drop
+        assert "204" in drop["responses"]  # No content
+        assert "422" in drop["responses"]
