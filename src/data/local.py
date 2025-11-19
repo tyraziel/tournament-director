@@ -126,9 +126,9 @@ class LocalJSONRepository(Generic[T]):
         """Create new entity."""
         await self._ensure_loaded()
 
-        entity_key = str(entity.id)  # type: ignore[attr-defined]
+        entity_key = str(entity.id)
         if entity_key in self._data:
-            raise DuplicateError(self.entity_name, "id", entity.id)  # type: ignore[attr-defined]
+            raise DuplicateError(self.entity_name, "id", entity.id)
 
         # Store as dict for JSON serialization
         self._data[entity_key] = entity.model_dump()
@@ -139,9 +139,9 @@ class LocalJSONRepository(Generic[T]):
         """Update existing entity."""
         await self._ensure_loaded()
 
-        entity_key = str(entity.id)  # type: ignore[attr-defined]
+        entity_key = str(entity.id)
         if entity_key not in self._data:
-            raise NotFoundError(self.entity_name, entity.id)  # type: ignore[attr-defined]
+            raise NotFoundError(self.entity_name, entity.id)
 
         self._data[entity_key] = entity.model_dump()
         await self._save_to_file()

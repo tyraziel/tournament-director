@@ -115,7 +115,7 @@ def calculate_match_win_percentage(
     mw_pct = total_wins / total_matches
 
     # Apply floor
-    floor = config.get("mw_floor", 0.33)
+    floor: float = float(config.get("mw_floor", 0.33))
     return max(mw_pct, floor)
 
 
@@ -162,7 +162,7 @@ def calculate_game_win_percentage(
     gw_pct = total_game_wins / total_games
 
     # Apply floor
-    floor = config.get("gw_floor", 0.33)
+    floor: float = float(config.get("gw_floor", 0.33))
     return max(gw_pct, floor)
 
 

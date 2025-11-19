@@ -83,7 +83,7 @@ def pair_round_1(
         raise ValueError(f"Invalid pairing mode: {mode}")
 
     # Create matches
-    matches = []
+    matches: list[Match] = []
     round_id = uuid4()  # Would come from Round in real implementation
 
     # Pair players sequentially
@@ -299,9 +299,9 @@ def pair_round(
     )
 
     # Pair players within brackets
-    new_matches = []
+    new_matches: list[Match] = []
     round_id = uuid4()
-    unpaired_players = []
+    unpaired_players: list[StandingsEntry] = []
 
     for match_points, bracket_entries in sorted(brackets.items(), reverse=True):
         # Add any pair-downs from higher brackets
@@ -542,7 +542,7 @@ def _select_bye_player(
         StandingsEntry for the player who should receive the bye
     """
     # Count previous byes for each player
-    bye_counts = defaultdict(int)
+    bye_counts: defaultdict[UUID, int] = defaultdict(int)
     for match in matches:
         if match.player2_id is None:  # Bye match
             bye_counts[match.player1_id] += 1
@@ -634,7 +634,7 @@ def _pair_bracket(
     Returns:
         Tuple of (matches created, unpaired players needing pair-down)
     """
-    matches = []
+    matches: list[Match] = []
     available = list(players)  # Copy to modify
 
     while len(available) >= 2:

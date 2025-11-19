@@ -143,9 +143,9 @@ def calculate_standings(
     # Sort standings
     # Primary: Match points (descending)
     # Secondary: Tiebreakers in configured order (descending)
-    def sort_key(entry: StandingsEntry):
-        # Start with match points
-        key = [entry.match_points]
+    def sort_key(entry: StandingsEntry) -> tuple[float, ...]:
+        # Start with match points (convert to float for consistent type)
+        key: list[float] = [float(entry.match_points)]
 
         # Add each tiebreaker value in order
         for tb_name in config.get("standings_tiebreakers", []):
