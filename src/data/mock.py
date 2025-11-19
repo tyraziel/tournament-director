@@ -3,7 +3,7 @@
 AIA PAI Hin R Claude Code v1.0
 """
 
-from typing import Any, Dict, List, Optional
+from typing import Any
 from uuid import UUID
 
 from src.models.auth import APIKey
@@ -32,7 +32,7 @@ class MockPlayerRepository(PlayerRepository):
     """Mock implementation of PlayerRepository."""
 
     def __init__(self) -> None:
-        self._players: Dict[UUID, Player] = {}
+        self._players: dict[UUID, Player] = {}
 
     async def create(self, player: Player) -> Player:
         if player.id in self._players:
@@ -51,19 +51,19 @@ class MockPlayerRepository(PlayerRepository):
             raise NotFoundError("Player", player_id)
         return self._players[player_id]
 
-    async def get_by_name(self, name: str) -> Optional[Player]:
+    async def get_by_name(self, name: str) -> Player | None:
         for player in self._players.values():
             if player.name == name:
                 return player
         return None
 
-    async def get_by_discord_id(self, discord_id: str) -> Optional[Player]:
+    async def get_by_discord_id(self, discord_id: str) -> Player | None:
         for player in self._players.values():
             if player.discord_id == discord_id:
                 return player
         return None
 
-    async def list_all(self, limit: Optional[int] = None, offset: int = 0) -> List[Player]:
+    async def list_all(self, limit: int | None = None, offset: int = 0) -> list[Player]:
         players = list(self._players.values())
         players.sort(key=lambda p: p.created_at)
 
@@ -95,7 +95,7 @@ class MockVenueRepository(VenueRepository):
     """Mock implementation of VenueRepository."""
 
     def __init__(self) -> None:
-        self._venues: Dict[UUID, Venue] = {}
+        self._venues: dict[UUID, Venue] = {}
 
     async def create(self, venue: Venue) -> Venue:
         if venue.id in self._venues:
@@ -109,13 +109,13 @@ class MockVenueRepository(VenueRepository):
             raise NotFoundError("Venue", venue_id)
         return self._venues[venue_id]
 
-    async def get_by_name(self, name: str) -> Optional[Venue]:
+    async def get_by_name(self, name: str) -> Venue | None:
         for venue in self._venues.values():
             if venue.name == name:
                 return venue
         return None
 
-    async def list_all(self, limit: Optional[int] = None, offset: int = 0) -> List[Venue]:
+    async def list_all(self, limit: int | None = None, offset: int = 0) -> list[Venue]:
         venues = list(self._venues.values())
         venues.sort(key=lambda v: v.name)
 
@@ -142,7 +142,7 @@ class MockFormatRepository(FormatRepository):
     """Mock implementation of FormatRepository."""
 
     def __init__(self) -> None:
-        self._formats: Dict[UUID, Format] = {}
+        self._formats: dict[UUID, Format] = {}
 
     async def create(self, format_obj: Format) -> Format:
         if format_obj.id in self._formats:
@@ -163,19 +163,21 @@ class MockFormatRepository(FormatRepository):
             raise NotFoundError("Format", format_id)
         return self._formats[format_id]
 
-    async def get_by_name(self, name: str, game_system: Optional[str] = None) -> Optional[Format]:
+    async def get_by_name(self, name: str, game_system: str | None = None) -> Format | None:
         for format_obj in self._formats.values():
-            if format_obj.name == name:
-                if game_system is None or format_obj.game_system == game_system:
-                    return format_obj
+            if (
+                format_obj.name == name
+                and (game_system is None or format_obj.game_system == game_system)
+            ):
+                return format_obj
         return None
 
-    async def list_by_game_system(self, game_system: str) -> List[Format]:
+    async def list_by_game_system(self, game_system: str) -> list[Format]:
         formats = [f for f in self._formats.values() if f.game_system == game_system]
         formats.sort(key=lambda f: f.name)
         return formats
 
-    async def list_all(self, limit: Optional[int] = None, offset: int = 0) -> List[Format]:
+    async def list_all(self, limit: int | None = None, offset: int = 0) -> list[Format]:
         formats = list(self._formats.values())
         formats.sort(key=lambda f: (f.game_system.value, f.name))
 
@@ -215,7 +217,7 @@ class MockTournamentRepository(TournamentRepository):
         venue_repo: MockVenueRepository,
         format_repo: MockFormatRepository,
     ) -> None:
-        self._tournaments: Dict[UUID, Tournament] = {}
+        self._tournaments: dict[UUID, Tournament] = {}
         self._player_repo = player_repo
         self._venue_repo = venue_repo
         self._format_repo = format_repo
@@ -225,7 +227,8 @@ class MockTournamentRepository(TournamentRepository):
             raise DuplicateError("Tournament", "id", tournament.id)
 
         # Validate foreign keys
-        await self._player_repo.get_by_id(tournament.created_by)  # Will raise NotFoundError if invalid
+        # Will raise NotFoundError if invalid
+        await self._player_repo.get_by_id(tournament.created_by)
         await self._venue_repo.get_by_id(tournament.venue_id)
         await self._format_repo.get_by_id(tournament.format_id)
 
@@ -237,27 +240,27 @@ class MockTournamentRepository(TournamentRepository):
             raise NotFoundError("Tournament", tournament_id)
         return self._tournaments[tournament_id]
 
-    async def list_by_status(self, status: str) -> List[Tournament]:
+    async def list_by_status(self, status: str) -> list[Tournament]:
         tournaments = [t for t in self._tournaments.values() if t.status == status]
         tournaments.sort(key=lambda t: t.created_at, reverse=True)
         return tournaments
 
-    async def list_by_venue(self, venue_id: UUID) -> List[Tournament]:
+    async def list_by_venue(self, venue_id: UUID) -> list[Tournament]:
         tournaments = [t for t in self._tournaments.values() if t.venue_id == venue_id]
         tournaments.sort(key=lambda t: t.created_at, reverse=True)
         return tournaments
 
-    async def list_by_format(self, format_id: UUID) -> List[Tournament]:
+    async def list_by_format(self, format_id: UUID) -> list[Tournament]:
         tournaments = [t for t in self._tournaments.values() if t.format_id == format_id]
         tournaments.sort(key=lambda t: t.created_at, reverse=True)
         return tournaments
 
-    async def list_by_organizer(self, organizer_id: UUID) -> List[Tournament]:
+    async def list_by_organizer(self, organizer_id: UUID) -> list[Tournament]:
         tournaments = [t for t in self._tournaments.values() if t.created_by == organizer_id]
         tournaments.sort(key=lambda t: t.created_at, reverse=True)
         return tournaments
 
-    async def list_all(self, limit: Optional[int] = None, offset: int = 0) -> List[Tournament]:
+    async def list_all(self, limit: int | None = None, offset: int = 0) -> list[Tournament]:
         tournaments = list(self._tournaments.values())
         tournaments.sort(key=lambda t: t.created_at, reverse=True)
 
@@ -291,7 +294,7 @@ class MockRegistrationRepository(RegistrationRepository):
     def __init__(
         self, tournament_repo: MockTournamentRepository, player_repo: MockPlayerRepository
     ) -> None:
-        self._registrations: Dict[UUID, TournamentRegistration] = {}
+        self._registrations: dict[UUID, TournamentRegistration] = {}
         self._tournament_repo = tournament_repo
         self._player_repo = player_repo
 
@@ -325,22 +328,31 @@ class MockRegistrationRepository(RegistrationRepository):
             raise NotFoundError("TournamentRegistration", registration_id)
         return self._registrations[registration_id]
 
-    async def get_by_tournament_and_player(self, tournament_id: UUID, player_id: UUID) -> Optional[TournamentRegistration]:
+    async def get_by_tournament_and_player(
+        self, tournament_id: UUID, player_id: UUID
+    ) -> TournamentRegistration | None:
         for registration in self._registrations.values():
             if (registration.tournament_id == tournament_id and
                 registration.player_id == player_id):
                 return registration
         return None
 
-    async def get_by_tournament_and_sequence_id(self, tournament_id: UUID, sequence_id: int) -> Optional[TournamentRegistration]:
+    async def get_by_tournament_and_sequence_id(
+        self, tournament_id: UUID, sequence_id: int
+    ) -> TournamentRegistration | None:
         for registration in self._registrations.values():
             if (registration.tournament_id == tournament_id and
                 registration.sequence_id == sequence_id):
                 return registration
         return None
 
-    async def list_by_tournament(self, tournament_id: UUID, status: Optional[str] = None) -> List[TournamentRegistration]:
-        registrations = [r for r in self._registrations.values() if r.tournament_id == tournament_id]
+    async def list_by_tournament(
+        self, tournament_id: UUID, status: str | None = None
+    ) -> list[TournamentRegistration]:
+        registrations = [
+            r for r in self._registrations.values()
+            if r.tournament_id == tournament_id
+        ]
 
         if status:
             registrations = [r for r in registrations if r.status == status]
@@ -348,7 +360,9 @@ class MockRegistrationRepository(RegistrationRepository):
         registrations.sort(key=lambda r: r.sequence_id)
         return registrations
 
-    async def list_by_player(self, player_id: UUID, status: Optional[str] = None) -> List[TournamentRegistration]:
+    async def list_by_player(
+        self, player_id: UUID, status: str | None = None
+    ) -> list[TournamentRegistration]:
         registrations = [r for r in self._registrations.values() if r.player_id == player_id]
 
         if status:
@@ -395,7 +409,7 @@ class MockRegistrationRepository(RegistrationRepository):
 
 class MockComponentRepository(ComponentRepository):
     def __init__(self, tournament_repo: MockTournamentRepository) -> None:
-        self._components: Dict[UUID, Component] = {}
+        self._components: dict[UUID, Component] = {}
         self._tournament_repo = tournament_repo
 
     async def create(self, component: Component) -> Component:
@@ -408,12 +422,14 @@ class MockComponentRepository(ComponentRepository):
             raise NotFoundError("Component", component_id)
         return self._components[component_id]
 
-    async def list_by_tournament(self, tournament_id: UUID) -> List[Component]:
+    async def list_by_tournament(self, tournament_id: UUID) -> list[Component]:
         components = [c for c in self._components.values() if c.tournament_id == tournament_id]
         components.sort(key=lambda c: c.sequence_order)
         return components
 
-    async def get_by_tournament_and_sequence(self, tournament_id: UUID, sequence_order: int) -> Optional[Component]:
+    async def get_by_tournament_and_sequence(
+        self, tournament_id: UUID, sequence_order: int
+    ) -> Component | None:
         for component in self._components.values():
             if (component.tournament_id == tournament_id and
                 component.sequence_order == sequence_order):
@@ -436,7 +452,7 @@ class MockRoundRepository(RoundRepository):
     def __init__(
         self, tournament_repo: MockTournamentRepository, component_repo: MockComponentRepository
     ) -> None:
-        self._rounds: Dict[UUID, Round] = {}
+        self._rounds: dict[UUID, Round] = {}
         self._tournament_repo = tournament_repo
         self._component_repo = component_repo
 
@@ -451,17 +467,19 @@ class MockRoundRepository(RoundRepository):
             raise NotFoundError("Round", round_id)
         return self._rounds[round_id]
 
-    async def list_by_tournament(self, tournament_id: UUID) -> List[Round]:
+    async def list_by_tournament(self, tournament_id: UUID) -> list[Round]:
         rounds = [r for r in self._rounds.values() if r.tournament_id == tournament_id]
         rounds.sort(key=lambda r: r.round_number)
         return rounds
 
-    async def list_by_component(self, component_id: UUID) -> List[Round]:
+    async def list_by_component(self, component_id: UUID) -> list[Round]:
         rounds = [r for r in self._rounds.values() if r.component_id == component_id]
         rounds.sort(key=lambda r: r.round_number)
         return rounds
 
-    async def get_by_component_and_round_number(self, component_id: UUID, round_number: int) -> Optional[Round]:
+    async def get_by_component_and_round_number(
+        self, component_id: UUID, round_number: int
+    ) -> Round | None:
         for round_obj in self._rounds.values():
             if (round_obj.component_id == component_id and
                 round_obj.round_number == round_number):
@@ -488,7 +506,7 @@ class MockMatchRepository(MatchRepository):
         round_repo: MockRoundRepository,
         player_repo: MockPlayerRepository,
     ) -> None:
-        self._matches: Dict[UUID, Match] = {}
+        self._matches: dict[UUID, Match] = {}
         self._tournament_repo = tournament_repo
         self._component_repo = component_repo
         self._round_repo = round_repo
@@ -511,22 +529,24 @@ class MockMatchRepository(MatchRepository):
             raise NotFoundError("Match", match_id)
         return self._matches[match_id]
 
-    async def list_by_tournament(self, tournament_id: UUID) -> List[Match]:
+    async def list_by_tournament(self, tournament_id: UUID) -> list[Match]:
         matches = [m for m in self._matches.values() if m.tournament_id == tournament_id]
         matches.sort(key=lambda m: (m.round_number, m.table_number or 0))
         return matches
 
-    async def list_by_round(self, round_id: UUID) -> List[Match]:
+    async def list_by_round(self, round_id: UUID) -> list[Match]:
         matches = [m for m in self._matches.values() if m.round_id == round_id]
         matches.sort(key=lambda m: m.table_number or 0)
         return matches
 
-    async def list_by_component(self, component_id: UUID) -> List[Match]:
+    async def list_by_component(self, component_id: UUID) -> list[Match]:
         matches = [m for m in self._matches.values() if m.component_id == component_id]
         matches.sort(key=lambda m: (m.round_number, m.table_number or 0))
         return matches
 
-    async def list_by_player(self, player_id: UUID, tournament_id: Optional[UUID] = None) -> List[Match]:
+    async def list_by_player(
+        self, player_id: UUID, tournament_id: UUID | None = None
+    ) -> list[Match]:
         matches = [m for m in self._matches.values()
                   if m.player1_id == player_id or m.player2_id == player_id]
 
@@ -552,8 +572,8 @@ class MockAPIKeyRepository(APIKeyRepository):
     """Mock implementation of APIKeyRepository."""
 
     def __init__(self) -> None:
-        self._api_keys: Dict[UUID, APIKey] = {}
-        self._token_index: Dict[str, UUID] = {}  # token -> api_key_id
+        self._api_keys: dict[UUID, APIKey] = {}
+        self._token_index: dict[str, UUID] = {}  # token -> api_key_id
 
     async def create(self, api_key: APIKey) -> APIKey:
         if api_key.id in self._api_keys:
@@ -572,13 +592,13 @@ class MockAPIKeyRepository(APIKeyRepository):
             raise NotFoundError("APIKey", key_id)
         return self._api_keys[key_id]
 
-    async def get_by_token(self, token: str) -> Optional[APIKey]:
+    async def get_by_token(self, token: str) -> APIKey | None:
         key_id = self._token_index.get(token)
         if not key_id:
             return None
         return self._api_keys.get(key_id)
 
-    async def list_by_owner(self, player_id: UUID) -> List[APIKey]:
+    async def list_by_owner(self, player_id: UUID) -> list[APIKey]:
         keys = [key for key in self._api_keys.values() if key.created_by == player_id]
         keys.sort(key=lambda k: k.created_at, reverse=True)
         return keys
@@ -618,8 +638,12 @@ class MockDataLayer(DataLayer):
         self._player_repo = MockPlayerRepository()
         self._venue_repo = MockVenueRepository()
         self._format_repo = MockFormatRepository()
-        self._tournament_repo = MockTournamentRepository(self._player_repo, self._venue_repo, self._format_repo)
-        self._registration_repo = MockRegistrationRepository(self._tournament_repo, self._player_repo)
+        self._tournament_repo = MockTournamentRepository(
+            self._player_repo, self._venue_repo, self._format_repo
+        )
+        self._registration_repo = MockRegistrationRepository(
+            self._tournament_repo, self._player_repo
+        )
         self._component_repo = MockComponentRepository(self._tournament_repo)
         self._round_repo = MockRoundRepository(self._tournament_repo, self._component_repo)
         self._match_repo = MockMatchRepository(self._tournament_repo, self._component_repo,
@@ -662,7 +686,7 @@ class MockDataLayer(DataLayer):
     def api_keys(self) -> APIKeyRepository:
         return self._api_key_repo
 
-    async def seed_data(self, data: Dict[str, List[Dict[str, Any]]]) -> None:
+    async def seed_data(self, data: dict[str, list[dict[str, Any]]]) -> None:
         """Seed the data layer with test/demo data."""
         # Clear existing data first
         await self.clear_all_data()
@@ -712,7 +736,7 @@ class MockDataLayer(DataLayer):
         self._venue_repo._venues.clear()
         self._player_repo._players.clear()
 
-    async def health_check(self) -> Dict[str, Any]:
+    async def health_check(self) -> dict[str, Any]:
         """Perform health check and return status information."""
         return {
             "backend_type": "mock",

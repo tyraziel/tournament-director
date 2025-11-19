@@ -5,7 +5,7 @@ AIA EAI Hin R Claude Code [Sonnet 4.5] v1.0 - 2025-11-19 - Added API models
 """
 
 from datetime import datetime, timezone
-from uuid import UUID, uuid4
+from uuid import UUID
 
 from pydantic import BaseModel, Field
 

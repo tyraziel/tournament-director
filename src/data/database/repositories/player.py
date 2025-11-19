@@ -3,15 +3,14 @@
 AIA EAI Hin R Claude Code [Sonnet 4.5] v1.0
 """
 
-from typing import List, Optional
 from uuid import UUID
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.data.database.models import PlayerModel
 from src.data.exceptions import DuplicateError, NotFoundError
 from src.data.interface import PlayerRepository
-from src.data.database.models import PlayerModel
 from src.models.player import Player
 
 
@@ -64,7 +63,7 @@ class DatabasePlayerRepository(PlayerRepository):
             created_at=db_player.created_at,
         )
 
-    async def get_by_name(self, name: str) -> Optional[Player]:
+    async def get_by_name(self, name: str) -> Player | None:
         """Get player by name. Returns None if not found."""
         stmt = select(PlayerModel).where(PlayerModel.name == name)
         result = await self.session.execute(stmt)
@@ -81,7 +80,7 @@ class DatabasePlayerRepository(PlayerRepository):
             created_at=db_player.created_at,
         )
 
-    async def get_by_discord_id(self, discord_id: str) -> Optional[Player]:
+    async def get_by_discord_id(self, discord_id: str) -> Player | None:
         """Get player by Discord ID. Returns None if not found."""
         stmt = select(PlayerModel).where(PlayerModel.discord_id == discord_id)
         result = await self.session.execute(stmt)
@@ -98,7 +97,7 @@ class DatabasePlayerRepository(PlayerRepository):
             created_at=db_player.created_at,
         )
 
-    async def list_all(self, limit: Optional[int] = None, offset: int = 0) -> List[Player]:
+    async def list_all(self, limit: int | None = None, offset: int = 0) -> list[Player]:
         """List all players with optional pagination."""
         stmt = select(PlayerModel).offset(offset)
         if limit:

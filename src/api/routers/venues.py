@@ -11,7 +11,7 @@ from uuid import UUID
 from fastapi import APIRouter, HTTPException, status
 
 from src.api.dependencies import DataLayerDep, PaginationDep
-from src.data.exceptions import NotFoundError, DuplicateError
+from src.data.exceptions import DuplicateError, NotFoundError
 from src.models.venue import Venue, VenueCreate, VenueUpdate
 
 router = APIRouter()
@@ -75,13 +75,12 @@ async def create_venue(
     venue = Venue(id=uuid4(), **venue_data.model_dump())
 
     try:
-        created_venue = await data_layer.venues.create(venue)
-        return created_venue
+        return await data_layer.venues.create(venue)
     except DuplicateError as e:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail=str(e),
-        )
+        ) from None
 
 
 @router.get(
@@ -108,13 +107,12 @@ async def get_venue(
         404: Venue not found
     """
     try:
-        venue = await data_layer.venues.get_by_id(venue_id)
-        return venue
+        return await data_layer.venues.get_by_id(venue_id)
     except NotFoundError:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Venue {venue_id} not found",
-        )
+        ) from None
 
 
 @router.put(
@@ -152,19 +150,18 @@ async def update_venue(
         updated_venue = existing_venue.model_copy(update=update_dict)
 
         # Save to data layer
-        result = await data_layer.venues.update(updated_venue)
-        return result
+        return await data_layer.venues.update(updated_venue)
 
     except NotFoundError:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Venue {venue_id} not found",
-        )
+        ) from None
     except DuplicateError as e:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail=str(e),
-        )
+        ) from None
 
 
 @router.delete(
@@ -192,4 +189,4 @@ async def delete_venue(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Venue {venue_id} not found",
-        )
+        ) from None

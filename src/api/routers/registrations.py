@@ -9,8 +9,8 @@ from uuid import UUID, uuid4
 
 from fastapi import APIRouter, HTTPException, status
 
-from src.data.exceptions import DuplicateError, NotFoundError
-from src.models.base import PlayerStatus, TournamentStatus
+from src.data.exceptions import NotFoundError
+from src.models.base import PlayerStatus
 from src.models.tournament import (
     PlayerRegistrationCreate,
     TournamentRegistration,
@@ -21,7 +21,11 @@ from ..dependencies import DataLayerDep, PaginationDep
 router = APIRouter(prefix="/tournaments")
 
 
-@router.post("/{tournament_id}/register", response_model=TournamentRegistration, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/{tournament_id}/register",
+    response_model=TournamentRegistration,
+    status_code=status.HTTP_201_CREATED,
+)
 async def register_player(
     tournament_id: UUID,
     registration_data: PlayerRegistrationCreate,
@@ -49,7 +53,7 @@ async def register_player(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Tournament {tournament_id} not found"
-        )
+        ) from None
 
     # Verify player exists
     try:
@@ -58,7 +62,7 @@ async def register_player(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Player {registration_data.player_id} not found"
-        )
+        ) from None
 
     # Check for duplicate registration
     existing_registration = await data_layer.registrations.get_by_tournament_and_player(
@@ -89,9 +93,10 @@ async def register_player(
             tournament_id, status=PlayerStatus.ACTIVE.value
         )
         if len(current_registrations) >= tournament.registration.max_players:
+            max_players = tournament.registration.max_players
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Tournament has reached maximum player count ({tournament.registration.max_players})"
+                detail=f"Tournament has reached maximum player count ({max_players})",
             )
 
     # Get next sequence ID
@@ -108,8 +113,7 @@ async def register_player(
         notes=registration_data.notes
     )
 
-    created = await data_layer.registrations.create(registration)
-    return created
+    return await data_layer.registrations.create(registration)
 
 
 @router.get("/{tournament_id}/registrations", response_model=list[TournamentRegistration])
@@ -131,7 +135,7 @@ async def list_registrations(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Tournament {tournament_id} not found"
-        )
+        ) from None
 
     # List all registrations (no status filter to include dropped players)
     registrations = await data_layer.registrations.list_by_tournament(tournament_id)
@@ -161,7 +165,7 @@ async def drop_player(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Tournament {tournament_id} not found"
-        )
+        ) from None
 
     # Get registration
     registration = await data_layer.registrations.get_by_tournament_and_player(
@@ -178,4 +182,4 @@ async def drop_player(
     registration.drop_time = datetime.now(timezone.utc)
 
     await data_layer.registrations.update(registration)
-    return None
+    return

@@ -7,27 +7,23 @@ This module defines comprehensive test cases for Swiss tournament pairing,
 including edge cases, bye handling, and pairing constraints.
 """
 
-import pytest
 from datetime import datetime, timezone
-from uuid import uuid4, UUID
+from uuid import UUID, uuid4
 
-from src.models.player import Player
-from src.models.tournament import Tournament, TournamentRegistration, RegistrationControl
-from src.models.format import Format
-from src.models.venue import Venue
-from src.models.match import Match, Round, Component
+import pytest
+
 from src.models.base import (
-    GameSystem,
-    BaseFormat,
+    ComponentStatus,
+    ComponentType,
+    PlayerStatus,
+    RoundStatus,
     TournamentStatus,
     TournamentVisibility,
-    PlayerStatus,
-    ComponentType,
-    ComponentStatus,
-    RoundStatus,
 )
-from src.swiss import pair_round_1, pair_round, calculate_standings
-
+from src.models.match import Component, Match, Round
+from src.models.player import Player
+from src.models.tournament import RegistrationControl, Tournament, TournamentRegistration
+from src.swiss import calculate_standings, pair_round, pair_round_1
 
 # =============================================================================
 # Test Fixtures and Helpers
@@ -231,7 +227,7 @@ class TestSubsequentRoundPairing:
 
         # Create round 1
         round1_id = uuid4()
-        round1 = Round(
+        Round(
             id=round1_id,
             tournament_id=base_tournament_data["tournament_id"],
             component_id=base_tournament_data["component_id"],
@@ -305,7 +301,7 @@ class TestSubsequentRoundPairing:
         # Winners: players[0], players[2], players[4], players[6]
         # Losers: players[1], players[3], players[5], players[7]
         winners = {players[0].id, players[2].id, players[4].id, players[6].id}
-        losers = {players[1].id, players[3].id, players[5].id, players[7].id}
+        {players[1].id, players[3].id, players[5].id, players[7].id}
 
         # Count matches within each bracket
         winner_matches = 0

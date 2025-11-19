@@ -4,8 +4,9 @@ API configuration settings.
 AIA EAI Hin R Claude Code [Sonnet 4.5] v1.0
 """
 
-from pydantic import BaseModel, Field
 from typing import Literal
+
+from pydantic import BaseModel, Field
 
 
 class APIConfig(BaseModel):
@@ -17,7 +18,7 @@ class APIConfig(BaseModel):
     debug: bool = True
 
     # Server
-    host: str = "0.0.0.0"
+    host: str = "0.0.0.0"  # noqa: S104  # Intentional - API server binding
     port: int = 8000
     reload: bool = True
 

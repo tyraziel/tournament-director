@@ -10,7 +10,6 @@ from uuid import UUID
 from fastapi import APIRouter, HTTPException, status
 
 from src.data.exceptions import NotFoundError
-from src.models.base import RoundStatus
 from src.models.match import Match, MatchResultSubmit
 
 from ..dependencies import DataLayerDep, PaginationDep
@@ -38,7 +37,7 @@ async def list_matches(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Tournament {tournament_id} not found"
-        )
+        ) from None
 
     # Get matches
     matches = await data_layer.matches.list_by_tournament(tournament_id)
@@ -60,13 +59,12 @@ async def get_match(
 ) -> Match:
     """Get a specific match by ID."""
     try:
-        match = await data_layer.matches.get_by_id(match_id)
-        return match
+        return await data_layer.matches.get_by_id(match_id)
     except NotFoundError:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Match {match_id} not found"
-        )
+        ) from None
 
 
 @router.put("/matches/{match_id}/result", response_model=Match)
@@ -91,15 +89,17 @@ async def submit_match_result(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Match {match_id} not found"
-        )
+        ) from None
 
     # Validate winner is one of the players (if not a draw)
-    if result.winner_id is not None:
-        if result.winner_id not in [match.player1_id, match.player2_id]:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="winner_id must be either player1_id or player2_id"
-            )
+    if (
+        result.winner_id is not None
+        and result.winner_id not in [match.player1_id, match.player2_id]
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="winner_id must be either player1_id or player2_id"
+        )
 
     # Update match with result
     match.player1_wins = result.player1_wins
@@ -110,5 +110,4 @@ async def submit_match_result(
         match.notes = result.notes
 
     # Save updated match
-    updated_match = await data_layer.matches.update(match)
-    return updated_match
+    return await data_layer.matches.update(match)

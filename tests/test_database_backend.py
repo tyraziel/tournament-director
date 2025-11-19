@@ -6,27 +6,41 @@ Follows TDD Red-Green-Refactor methodology.
 AIA EAI Hin R Claude Code [Sonnet 4.5] v1.0
 """
 
-import pytest
-import pytest_asyncio
 from datetime import datetime, timezone
 from uuid import uuid4
 
+import pytest
+import pytest_asyncio
+
 from src.data.database import DatabaseDataLayer
-from src.data.exceptions import NotFoundError, DuplicateError
-from src.models.player import Player
-from src.models.venue import Venue
+from src.data.exceptions import DuplicateError, NotFoundError
+from src.models.base import (
+    BaseFormat,
+    GameSystem,
+    PlayerStatus,
+    TournamentStatus,
+    TournamentVisibility,
+)
 from src.models.format import Format
-from src.models.base import GameSystem, BaseFormat
-from src.models.tournament import Tournament, TournamentRegistration, RegistrationControl
-from src.models.base import TournamentStatus, TournamentVisibility, PlayerStatus
+from src.models.player import Player
+from src.models.tournament import RegistrationControl, Tournament, TournamentRegistration
+from src.models.venue import Venue
 
 
 # Database URL fixtures for different databases
-@pytest.fixture(params=["sqlite", "postgresql"])  # Currently testing SQLite and PostgreSQL
+@pytest.fixture(params=["sqlite"])  # Currently testing SQLite only
 def database_url(request):
     """Provide database URLs for testing.
 
-    Currently testing: SQLite (in-memory) and PostgreSQL (via Unix socket)
+    Currently testing: SQLite (in-memory)
+
+    PostgreSQL Support:
+    -------------------
+    PostgreSQL testing is disabled by default (requires running PostgreSQL server).
+    To enable PostgreSQL tests:
+    1. Start PostgreSQL server with Unix socket at /tmp/pg_socket
+    2. Add "postgresql" to params above
+    3. Ensure database 'tournament_director' exists
 
     MySQL/MariaDB Support:
     ----------------------
@@ -46,9 +60,10 @@ def database_url(request):
     if request.param == "sqlite":
         # Use in-memory SQLite for fast testing
         return "sqlite+aiosqlite:///:memory:"
-    elif request.param == "postgresql":
+    if request.param == "postgresql":
         # PostgreSQL with Unix socket connection
         return "postgresql+asyncpg://postgres@/tournament_director?host=/tmp/pg_socket"
+    return None
     # TODO: Requires MySQL/MariaDB installation (not available in current environment)
     # elif request.param == "mysql":
     #     # MySQL 5.7+ via aiomysql
@@ -287,7 +302,7 @@ async def test_player_update(clean_data_layer):
     player.name = "Eve Updated"
     player.email = "eve@example.com"
 
-    updated = await clean_data_layer.players.update(player)
+    await clean_data_layer.players.update(player)
     await clean_data_layer.commit()
 
     # Verify update
@@ -492,7 +507,9 @@ async def test_tournament_list_by_status(clean_data_layer):
         await clean_data_layer.tournaments.create(t)
     await clean_data_layer.commit()
 
-    draft_tournaments = await clean_data_layer.tournaments.list_by_status(TournamentStatus.DRAFT.value)
+    draft_tournaments = await clean_data_layer.tournaments.list_by_status(
+        TournamentStatus.DRAFT.value
+    )
 
     assert len(draft_tournaments) == 2
 

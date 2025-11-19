@@ -3,17 +3,16 @@
 AIA EAI Hin R Claude Code [Sonnet 4.5] v1.0
 """
 
-from typing import List, Optional
 from uuid import UUID
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.data.database.models import FormatModel
 from src.data.exceptions import DuplicateError, NotFoundError
 from src.data.interface import FormatRepository
-from src.data.database.models import FormatModel
+from src.models.base import BaseFormat, GameSystem
 from src.models.format import Format
-from src.models.base import GameSystem, BaseFormat
 
 
 class DatabaseFormatRepository(FormatRepository):
@@ -64,8 +63,8 @@ class DatabaseFormatRepository(FormatRepository):
         )
 
     async def get_by_name(
-        self, name: str, game_system: Optional[str] = None
-    ) -> Optional[Format]:
+        self, name: str, game_system: str | None = None
+    ) -> Format | None:
         """Get format by name and optionally game system. Returns None if not found."""
         stmt = select(FormatModel).where(FormatModel.name == name)
         if game_system:
@@ -88,7 +87,7 @@ class DatabaseFormatRepository(FormatRepository):
             description=db_format.description,
         )
 
-    async def list_by_game_system(self, game_system: str) -> List[Format]:
+    async def list_by_game_system(self, game_system: str) -> list[Format]:
         """List all formats for a specific game system."""
         stmt = select(FormatModel).where(FormatModel.game_system == game_system)
         result = await self.session.execute(stmt)
@@ -108,7 +107,7 @@ class DatabaseFormatRepository(FormatRepository):
             for db_format in db_formats
         ]
 
-    async def list_all(self, limit: Optional[int] = None, offset: int = 0) -> List[Format]:
+    async def list_all(self, limit: int | None = None, offset: int = 0) -> list[Format]:
         """List all formats with optional pagination."""
         stmt = select(FormatModel).offset(offset)
         if limit:

@@ -11,8 +11,6 @@ import logging
 import logging.handlers
 import sys
 from pathlib import Path
-from typing import Optional
-
 
 # Default log format with timestamp, level, module, and message
 DEFAULT_FORMAT = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
@@ -26,7 +24,7 @@ DETAILED_FORMAT = (
 
 def setup_logging(
     level: str = "INFO",
-    log_file: Optional[Path] = None,
+    log_file: Path | None = None,
     console: bool = True,
     detailed: bool = False,
 ) -> None:
@@ -133,7 +131,7 @@ def log_pairing_decision(
     logger: logging.Logger,
     round_number: int,
     player1_id: str,
-    player2_id: Optional[str],
+    player2_id: str | None,
     reason: str,
     **context,
 ) -> None:

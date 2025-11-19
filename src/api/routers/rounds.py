@@ -10,20 +10,23 @@ from uuid import UUID, uuid4
 from fastapi import APIRouter, HTTPException, status
 
 from src.data.exceptions import NotFoundError
-from src.models.base import TournamentStatus, RoundStatus, ComponentStatus, PlayerStatus
-from src.models.match import Round, Match
+from src.models.base import PlayerStatus, RoundStatus, TournamentStatus
+from src.models.match import Round
 from src.models.match import StandingsEntry as APIStandingsEntry
-from src.models.tournament import TournamentRegistration
-from src.swiss.pairing import pair_round_1, pair_round
-from src.swiss.standings import calculate_standings
 from src.swiss.models import StandingsEntry as SwissStandingsEntry
+from src.swiss.pairing import pair_round, pair_round_1
+from src.swiss.standings import calculate_standings
 
-from ..dependencies import DataLayerDep, PaginationDep
+from ..dependencies import DataLayerDep
 
 router = APIRouter(prefix="/tournaments")
 
 
-@router.post("/{tournament_id}/rounds/{round_number}/pair", response_model=Round, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/{tournament_id}/rounds/{round_number}/pair",
+    response_model=Round,
+    status_code=status.HTTP_201_CREATED,
+)
 async def pair_round_endpoint(
     tournament_id: UUID,
     round_number: int,
@@ -45,12 +48,16 @@ async def pair_round_endpoint(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Tournament {tournament_id} not found"
-        )
+        ) from None
 
     if tournament.status != TournamentStatus.IN_PROGRESS:
+        current_status = tournament.status.value
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Tournament must be IN_PROGRESS to pair rounds (current status: {tournament.status.value})"
+            detail=(
+                f"Tournament must be IN_PROGRESS to pair rounds "
+                f"(current status: {current_status})"
+            ),
         )
 
     # Check if round already exists
@@ -146,7 +153,7 @@ async def get_round(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Tournament {tournament_id} not found"
-        )
+        ) from None
 
     # Get round by tournament and round number
     rounds = await data_layer.rounds.list_by_tournament(tournament_id)
@@ -198,8 +205,7 @@ async def complete_round(
     round_obj.status = RoundStatus.COMPLETED
     round_obj.end_time = datetime.now(timezone.utc)
 
-    updated_round = await data_layer.rounds.update(round_obj)
-    return updated_round
+    return await data_layer.rounds.update(round_obj)
 
 
 @router.get("/{tournament_id}/standings", response_model=list[APIStandingsEntry])
@@ -218,12 +224,12 @@ async def get_standings(
     """
     # Verify tournament exists
     try:
-        tournament = await data_layer.tournaments.get_by_id(tournament_id)
+        await data_layer.tournaments.get_by_id(tournament_id)
     except NotFoundError:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Tournament {tournament_id} not found"
-        )
+        ) from None
 
     # Get all registrations (including dropped players)
     registrations = await data_layer.registrations.list_by_tournament(tournament_id)
@@ -261,7 +267,8 @@ async def get_standings(
             player_name=player_name,
             sequence_id=swiss_entry.player.sequence_id,
             match_points=swiss_entry.match_points,
-            game_points=(swiss_entry.game_wins * 3) + swiss_entry.game_draws,  # Calculate game points
+            # Calculate game points
+            game_points=(swiss_entry.game_wins * 3) + swiss_entry.game_draws,
             matches_played=swiss_entry.matches_played,
             match_win_percentage=mw_pct,
             game_win_percentage=gw_pct,

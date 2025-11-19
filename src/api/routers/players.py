@@ -11,7 +11,7 @@ from uuid import UUID
 from fastapi import APIRouter, HTTPException, status
 
 from src.api.dependencies import DataLayerDep, PaginationDep
-from src.data.exceptions import NotFoundError, DuplicateError
+from src.data.exceptions import DuplicateError, NotFoundError
 from src.models.player import Player, PlayerCreate, PlayerUpdate
 
 router = APIRouter()
@@ -75,13 +75,12 @@ async def create_player(
     player = Player(id=uuid4(), **player_data.model_dump())
 
     try:
-        created_player = await data_layer.players.create(player)
-        return created_player
+        return await data_layer.players.create(player)
     except DuplicateError as e:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail=str(e),
-        )
+        ) from None
 
 
 @router.get(
@@ -108,13 +107,12 @@ async def get_player(
         404: Player not found
     """
     try:
-        player = await data_layer.players.get_by_id(player_id)
-        return player
+        return await data_layer.players.get_by_id(player_id)
     except NotFoundError:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Player {player_id} not found",
-        )
+        ) from None
 
 
 @router.put(
@@ -152,19 +150,18 @@ async def update_player(
         updated_player = existing_player.model_copy(update=update_dict)
 
         # Save to data layer
-        result = await data_layer.players.update(updated_player)
-        return result
+        return await data_layer.players.update(updated_player)
 
     except NotFoundError:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Player {player_id} not found",
-        )
+        ) from None
     except DuplicateError as e:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail=str(e),
-        )
+        ) from None
 
 
 @router.delete(
@@ -192,7 +189,7 @@ async def delete_player(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Player {player_id} not found",
-        )
+        ) from None
 
 
 @router.get(

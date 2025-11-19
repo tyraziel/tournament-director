@@ -7,18 +7,18 @@ various scenarios including edge cases.
 AIA EAI Hin R Claude Code [Sonnet 4.5] v1.0
 """
 
-import pytest
 from uuid import uuid4
 
-from src.models.player import Player
-from src.models.tournament import TournamentRegistration
-from src.models.match import Match
+import pytest
+
 from src.models.base import PlayerStatus
+from src.models.match import Match
+from src.models.tournament import TournamentRegistration
 from src.swiss.tiebreakers import (
-    calculate_match_win_percentage,
     calculate_game_win_percentage,
-    calculate_opponent_match_win_percentage,
+    calculate_match_win_percentage,
     calculate_opponent_game_win_percentage,
+    calculate_opponent_match_win_percentage,
 )
 
 

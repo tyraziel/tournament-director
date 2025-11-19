@@ -9,8 +9,8 @@ AIA EAI Hin R Claude Code [Sonnet 4.5] v1.0
 
 from uuid import UUID
 
-from src.models.tournament import TournamentRegistration
 from src.models.match import Match
+from src.models.tournament import TournamentRegistration
 
 
 def is_bye_match(match: Match) -> bool:
@@ -52,10 +52,9 @@ def get_match_result_for_player(
     # Determine match result
     if player_wins > opponent_wins:
         return (1, 0, 0)  # Win
-    elif player_wins < opponent_wins:
+    if player_wins < opponent_wins:
         return (0, 1, 0)  # Loss
-    else:
-        return (0, 0, 1)  # Draw (equal wins)
+    return (0, 0, 1)  # Draw (equal wins)
 
 
 def get_game_result_for_player(
@@ -73,8 +72,7 @@ def get_game_result_for_player(
     # Determine if player is player1 or player2
     if match.player1_id == player.player_id:
         return (match.player1_wins, match.player2_wins)
-    else:
-        return (match.player2_wins, match.player1_wins)
+    return (match.player2_wins, match.player1_wins)
 
 
 def get_opponent_id(player: TournamentRegistration, match: Match) -> UUID | None:
@@ -84,8 +82,7 @@ def get_opponent_id(player: TournamentRegistration, match: Match) -> UUID | None
 
     if match.player1_id == player.player_id:
         return match.player2_id
-    else:
-        return match.player1_id
+    return match.player1_id
 
 
 def calculate_match_win_percentage(

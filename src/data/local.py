@@ -5,13 +5,11 @@ AIA PAI Hin R Claude Code v1.0
 
 import json
 from pathlib import Path
-from typing import Any, Dict, Generic, List, Optional, Type, TypeVar
+from typing import Any, Generic, TypeVar
 from uuid import UUID
 
 import aiofiles
 from pydantic import BaseModel
-
-T = TypeVar("T", bound=BaseModel)
 
 from src.models.auth import APIKey
 from src.models.format import Format
@@ -34,16 +32,18 @@ from .interface import (
     VenueRepository,
 )
 
+T = TypeVar("T", bound=BaseModel)
+
 
 class LocalJSONRepository(Generic[T]):
     """Base class for JSON file-based repositories."""
 
-    def __init__(self, data_dir: Path, entity_name: str, model_class: Type[T]) -> None:
+    def __init__(self, data_dir: Path, entity_name: str, model_class: type[T]) -> None:
         self.data_dir = data_dir
         self.entity_name = entity_name
         self.model_class = model_class
         self.file_path = data_dir / f"{entity_name}.json"
-        self._data: Dict[str, dict] = {}
+        self._data: dict[str, dict] = {}
         self._loaded = False
 
     async def _ensure_loaded(self) -> None:
@@ -63,12 +63,12 @@ class LocalJSONRepository(Generic[T]):
             return
 
         try:
-            async with aiofiles.open(self.file_path, 'r') as f:
+            async with aiofiles.open(self.file_path) as f:
                 content = await f.read()
                 if content.strip():
                     file_data = json.loads(content)
                     # Convert string keys back to UUIDs for internal storage
-                    self._data = {k: v for k, v in file_data.items()}
+                    self._data = dict(file_data.items())
                 else:
                     self._data = {}
         except (json.JSONDecodeError, FileNotFoundError):
@@ -107,11 +107,11 @@ class LocalJSONRepository(Generic[T]):
         # Convert back to Pydantic model
         return self.model_class.model_validate(self._data[entity_key])
 
-    async def _list_all(self, limit: Optional[int] = None, offset: int = 0) -> List[T]:
+    async def _list_all(self, limit: int | None = None, offset: int = 0) -> list[T]:
         """List all entities, returning Pydantic models."""
         await self._ensure_loaded()
 
-        entities: List[T] = []
+        entities: list[T] = []
         for entity_data in self._data.values():
             entities.append(self.model_class.model_validate(entity_data))
 
@@ -183,7 +183,7 @@ class LocalPlayerRepository(LocalJSONRepository, PlayerRepository):
     async def get_by_id(self, player_id: UUID) -> Player:
         return await self._get_by_id(player_id)  # type: ignore[no-any-return]
 
-    async def get_by_name(self, name: str) -> Optional[Player]:
+    async def get_by_name(self, name: str) -> Player | None:
         await self._ensure_loaded()
 
         for entity_data in self._data.values():
@@ -191,7 +191,7 @@ class LocalPlayerRepository(LocalJSONRepository, PlayerRepository):
                 return Player.model_validate(entity_data)
         return None
 
-    async def get_by_discord_id(self, discord_id: str) -> Optional[Player]:
+    async def get_by_discord_id(self, discord_id: str) -> Player | None:
         await self._ensure_loaded()
 
         for entity_data in self._data.values():
@@ -199,7 +199,7 @@ class LocalPlayerRepository(LocalJSONRepository, PlayerRepository):
                 return Player.model_validate(entity_data)
         return None
 
-    async def list_all(self, limit: Optional[int] = None, offset: int = 0) -> List[Player]:
+    async def list_all(self, limit: int | None = None, offset: int = 0) -> list[Player]:
         entities = await self._list_all(limit, offset)
         entities.sort(key=lambda p: p.created_at)
         return entities
@@ -240,7 +240,7 @@ class LocalAPIKeyRepository(LocalJSONRepository, APIKeyRepository):
     async def get_by_id(self, api_key_id: UUID) -> APIKey:
         return await self._get_by_id(api_key_id)  # type: ignore[no-any-return]
 
-    async def get_by_token(self, token: str) -> Optional[APIKey]:
+    async def get_by_token(self, token: str) -> APIKey | None:
         await self._ensure_loaded()
 
         for entity_data in self._data.values():
@@ -248,7 +248,7 @@ class LocalAPIKeyRepository(LocalJSONRepository, APIKeyRepository):
                 return APIKey.model_validate(entity_data)
         return None
 
-    async def list_by_owner(self, player_id: UUID) -> List[APIKey]:
+    async def list_by_owner(self, player_id: UUID) -> list[APIKey]:
         await self._ensure_loaded()
 
         player_id_str = str(player_id)
@@ -287,7 +287,7 @@ class LocalVenueRepository(LocalJSONRepository, VenueRepository):
     async def get_by_id(self, venue_id: UUID) -> Venue:
         return await self._get_by_id(venue_id)  # type: ignore[no-any-return]
 
-    async def get_by_name(self, name: str) -> Optional[Venue]:
+    async def get_by_name(self, name: str) -> Venue | None:
         await self._ensure_loaded()
 
         for entity_data in self._data.values():
@@ -295,7 +295,7 @@ class LocalVenueRepository(LocalJSONRepository, VenueRepository):
                 return Venue.model_validate(entity_data)
         return None
 
-    async def list_all(self, limit: Optional[int] = None, offset: int = 0) -> List[Venue]:
+    async def list_all(self, limit: int | None = None, offset: int = 0) -> list[Venue]:
         entities = await self._list_all(limit, offset)
         entities.sort(key=lambda v: v.name)
         return entities
@@ -328,16 +328,18 @@ class LocalFormatRepository(LocalJSONRepository, FormatRepository):
     async def get_by_id(self, format_id: UUID) -> Format:
         return await self._get_by_id(format_id)  # type: ignore[no-any-return]
 
-    async def get_by_name(self, name: str, game_system: Optional[str] = None) -> Optional[Format]:
+    async def get_by_name(self, name: str, game_system: str | None = None) -> Format | None:
         await self._ensure_loaded()
 
         for entity_data in self._data.values():
-            if entity_data.get('name') == name:
-                if game_system is None or entity_data.get('game_system') == game_system:
-                    return Format.model_validate(entity_data)
+            if (
+                entity_data.get('name') == name
+                and (game_system is None or entity_data.get('game_system') == game_system)
+            ):
+                return Format.model_validate(entity_data)
         return None
 
-    async def list_by_game_system(self, game_system: str) -> List[Format]:
+    async def list_by_game_system(self, game_system: str) -> list[Format]:
         await self._ensure_loaded()
 
         formats = []
@@ -348,7 +350,7 @@ class LocalFormatRepository(LocalJSONRepository, FormatRepository):
         formats.sort(key=lambda f: f.name)
         return formats
 
-    async def list_all(self, limit: Optional[int] = None, offset: int = 0) -> List[Format]:
+    async def list_all(self, limit: int | None = None, offset: int = 0) -> list[Format]:
         entities = await self._list_all(limit, offset)
         entities.sort(key=lambda f: (f.game_system.value, f.name))
         return entities
@@ -382,7 +384,8 @@ class LocalTournamentRepository(LocalJSONRepository, TournamentRepository):
 
     async def create(self, tournament: Tournament) -> Tournament:
         # Validate foreign keys
-        await self._player_repo.get_by_id(tournament.created_by)  # Will raise NotFoundError if invalid
+        # Will raise NotFoundError if invalid
+        await self._player_repo.get_by_id(tournament.created_by)
         await self._venue_repo.get_by_id(tournament.venue_id)
         await self._format_repo.get_by_id(tournament.format_id)
 
@@ -391,7 +394,7 @@ class LocalTournamentRepository(LocalJSONRepository, TournamentRepository):
     async def get_by_id(self, tournament_id: UUID) -> Tournament:
         return await self._get_by_id(tournament_id)  # type: ignore[no-any-return]
 
-    async def list_by_status(self, status: str) -> List[Tournament]:
+    async def list_by_status(self, status: str) -> list[Tournament]:
         await self._ensure_loaded()
 
         tournaments = []
@@ -402,7 +405,7 @@ class LocalTournamentRepository(LocalJSONRepository, TournamentRepository):
         tournaments.sort(key=lambda t: t.created_at, reverse=True)
         return tournaments
 
-    async def list_by_venue(self, venue_id: UUID) -> List[Tournament]:
+    async def list_by_venue(self, venue_id: UUID) -> list[Tournament]:
         await self._ensure_loaded()
 
         tournaments = []
@@ -414,7 +417,7 @@ class LocalTournamentRepository(LocalJSONRepository, TournamentRepository):
         tournaments.sort(key=lambda t: t.created_at, reverse=True)
         return tournaments
 
-    async def list_by_format(self, format_id: UUID) -> List[Tournament]:
+    async def list_by_format(self, format_id: UUID) -> list[Tournament]:
         await self._ensure_loaded()
 
         tournaments = []
@@ -426,7 +429,7 @@ class LocalTournamentRepository(LocalJSONRepository, TournamentRepository):
         tournaments.sort(key=lambda t: t.created_at, reverse=True)
         return tournaments
 
-    async def list_by_organizer(self, organizer_id: UUID) -> List[Tournament]:
+    async def list_by_organizer(self, organizer_id: UUID) -> list[Tournament]:
         await self._ensure_loaded()
 
         tournaments = []
@@ -438,7 +441,7 @@ class LocalTournamentRepository(LocalJSONRepository, TournamentRepository):
         tournaments.sort(key=lambda t: t.created_at, reverse=True)
         return tournaments
 
-    async def list_all(self, limit: Optional[int] = None, offset: int = 0) -> List[Tournament]:
+    async def list_all(self, limit: int | None = None, offset: int = 0) -> list[Tournament]:
         entities = await self._list_all(limit, offset)
         entities.sort(key=lambda t: t.created_at, reverse=True)
         return entities
@@ -493,7 +496,9 @@ class LocalRegistrationRepository(LocalJSONRepository, RegistrationRepository):
     async def get_by_id(self, registration_id: UUID) -> TournamentRegistration:
         return await self._get_by_id(registration_id)  # type: ignore[no-any-return]
 
-    async def get_by_tournament_and_player(self, tournament_id: UUID, player_id: UUID) -> Optional[TournamentRegistration]:
+    async def get_by_tournament_and_player(
+        self, tournament_id: UUID, player_id: UUID
+    ) -> TournamentRegistration | None:
         await self._ensure_loaded()
 
         tournament_id_str = str(tournament_id)
@@ -505,7 +510,9 @@ class LocalRegistrationRepository(LocalJSONRepository, RegistrationRepository):
                 return TournamentRegistration.model_validate(entity_data)
         return None
 
-    async def get_by_tournament_and_sequence_id(self, tournament_id: UUID, sequence_id: int) -> Optional[TournamentRegistration]:
+    async def get_by_tournament_and_sequence_id(
+        self, tournament_id: UUID, sequence_id: int
+    ) -> TournamentRegistration | None:
         await self._ensure_loaded()
 
         tournament_id_str = str(tournament_id)
@@ -516,30 +523,38 @@ class LocalRegistrationRepository(LocalJSONRepository, RegistrationRepository):
                 return TournamentRegistration.model_validate(entity_data)
         return None
 
-    async def list_by_tournament(self, tournament_id: UUID, status: Optional[str] = None) -> List[TournamentRegistration]:
+    async def list_by_tournament(
+        self, tournament_id: UUID, status: str | None = None
+    ) -> list[TournamentRegistration]:
         await self._ensure_loaded()
 
         tournament_id_str = str(tournament_id)
         registrations = []
 
         for entity_data in self._data.values():
-            if entity_data.get('tournament_id') == tournament_id_str:
-                if status is None or entity_data.get('status') == status:
-                    registrations.append(TournamentRegistration.model_validate(entity_data))
+            if (
+                entity_data.get('tournament_id') == tournament_id_str
+                and (status is None or entity_data.get('status') == status)
+            ):
+                registrations.append(TournamentRegistration.model_validate(entity_data))
 
         registrations.sort(key=lambda r: r.sequence_id)
         return registrations
 
-    async def list_by_player(self, player_id: UUID, status: Optional[str] = None) -> List[TournamentRegistration]:
+    async def list_by_player(
+        self, player_id: UUID, status: str | None = None
+    ) -> list[TournamentRegistration]:
         await self._ensure_loaded()
 
         player_id_str = str(player_id)
         registrations = []
 
         for entity_data in self._data.values():
-            if entity_data.get('player_id') == player_id_str:
-                if status is None or entity_data.get('status') == status:
-                    registrations.append(TournamentRegistration.model_validate(entity_data))
+            if (
+                entity_data.get('player_id') == player_id_str
+                and (status is None or entity_data.get('status') == status)
+            ):
+                registrations.append(TournamentRegistration.model_validate(entity_data))
 
         registrations.sort(key=lambda r: r.registration_time, reverse=True)
         return registrations
@@ -594,7 +609,7 @@ class LocalComponentRepository(LocalJSONRepository, ComponentRepository):
     async def get_by_id(self, component_id: UUID) -> Component:
         return await self._get_by_id(component_id)  # type: ignore[no-any-return]
 
-    async def list_by_tournament(self, tournament_id: UUID) -> List[Component]:
+    async def list_by_tournament(self, tournament_id: UUID) -> list[Component]:
         await self._ensure_loaded()
         tournament_id_str = str(tournament_id)
 
@@ -606,7 +621,9 @@ class LocalComponentRepository(LocalJSONRepository, ComponentRepository):
         components.sort(key=lambda c: c.sequence_order)
         return components
 
-    async def get_by_tournament_and_sequence(self, tournament_id: UUID, sequence_order: int) -> Optional[Component]:
+    async def get_by_tournament_and_sequence(
+        self, tournament_id: UUID, sequence_order: int
+    ) -> Component | None:
         await self._ensure_loaded()
         tournament_id_str = str(tournament_id)
 
@@ -624,7 +641,12 @@ class LocalComponentRepository(LocalJSONRepository, ComponentRepository):
 
 
 class LocalRoundRepository(LocalJSONRepository, RoundRepository):
-    def __init__(self, data_dir: Path, tournament_repo: LocalTournamentRepository, component_repo: LocalComponentRepository):
+    def __init__(
+        self,
+        data_dir: Path,
+        tournament_repo: LocalTournamentRepository,
+        component_repo: LocalComponentRepository,
+    ):
         super().__init__(data_dir, "rounds", Round)
         self._tournament_repo = tournament_repo
         self._component_repo = component_repo
@@ -637,7 +659,7 @@ class LocalRoundRepository(LocalJSONRepository, RoundRepository):
     async def get_by_id(self, round_id: UUID) -> Round:
         return await self._get_by_id(round_id)  # type: ignore[no-any-return]
 
-    async def list_by_tournament(self, tournament_id: UUID) -> List[Round]:
+    async def list_by_tournament(self, tournament_id: UUID) -> list[Round]:
         await self._ensure_loaded()
         tournament_id_str = str(tournament_id)
 
@@ -649,7 +671,7 @@ class LocalRoundRepository(LocalJSONRepository, RoundRepository):
         rounds.sort(key=lambda r: r.round_number)
         return rounds
 
-    async def list_by_component(self, component_id: UUID) -> List[Round]:
+    async def list_by_component(self, component_id: UUID) -> list[Round]:
         await self._ensure_loaded()
         component_id_str = str(component_id)
 
@@ -661,7 +683,9 @@ class LocalRoundRepository(LocalJSONRepository, RoundRepository):
         rounds.sort(key=lambda r: r.round_number)
         return rounds
 
-    async def get_by_component_and_round_number(self, component_id: UUID, round_number: int) -> Optional[Round]:
+    async def get_by_component_and_round_number(
+        self, component_id: UUID, round_number: int
+    ) -> Round | None:
         await self._ensure_loaded()
         component_id_str = str(component_id)
 
@@ -702,7 +726,7 @@ class LocalMatchRepository(LocalJSONRepository, MatchRepository):
     async def get_by_id(self, match_id: UUID) -> Match:
         return await self._get_by_id(match_id)  # type: ignore[no-any-return]
 
-    async def list_by_tournament(self, tournament_id: UUID) -> List[Match]:
+    async def list_by_tournament(self, tournament_id: UUID) -> list[Match]:
         await self._ensure_loaded()
         tournament_id_str = str(tournament_id)
 
@@ -714,7 +738,7 @@ class LocalMatchRepository(LocalJSONRepository, MatchRepository):
         matches.sort(key=lambda m: (m.round_number, m.table_number or 0))
         return matches
 
-    async def list_by_round(self, round_id: UUID) -> List[Match]:
+    async def list_by_round(self, round_id: UUID) -> list[Match]:
         await self._ensure_loaded()
         round_id_str = str(round_id)
 
@@ -726,7 +750,7 @@ class LocalMatchRepository(LocalJSONRepository, MatchRepository):
         matches.sort(key=lambda m: m.table_number or 0)
         return matches
 
-    async def list_by_component(self, component_id: UUID) -> List[Match]:
+    async def list_by_component(self, component_id: UUID) -> list[Match]:
         await self._ensure_loaded()
         component_id_str = str(component_id)
 
@@ -738,18 +762,22 @@ class LocalMatchRepository(LocalJSONRepository, MatchRepository):
         matches.sort(key=lambda m: (m.round_number, m.table_number or 0))
         return matches
 
-    async def list_by_player(self, player_id: UUID, tournament_id: Optional[UUID] = None) -> List[Match]:
+    async def list_by_player(
+        self, player_id: UUID, tournament_id: UUID | None = None
+    ) -> list[Match]:
         await self._ensure_loaded()
         player_id_str = str(player_id)
         tournament_id_str = str(tournament_id) if tournament_id else None
 
         matches = []
         for entity_data in self._data.values():
-            if (entity_data.get('player1_id') == player_id_str or
-                entity_data.get('player2_id') == player_id_str):
-
-                if tournament_id_str is None or entity_data.get('tournament_id') == tournament_id_str:
-                    matches.append(Match.model_validate(entity_data))
+            if (
+                (entity_data.get('player1_id') == player_id_str or
+                 entity_data.get('player2_id') == player_id_str)
+                and (tournament_id_str is None or
+                     entity_data.get('tournament_id') == tournament_id_str)
+            ):
+                matches.append(Match.model_validate(entity_data))
 
         matches.sort(key=lambda m: (m.round_number, m.table_number or 0))
         return matches
@@ -772,12 +800,25 @@ class LocalDataLayer(DataLayer):
         self._api_key_repo = LocalAPIKeyRepository(self.data_dir)
         self._venue_repo = LocalVenueRepository(self.data_dir)
         self._format_repo = LocalFormatRepository(self.data_dir)
-        self._tournament_repo = LocalTournamentRepository(self.data_dir, self._player_repo, self._venue_repo, self._format_repo)
-        self._registration_repo = LocalRegistrationRepository(self.data_dir, self._tournament_repo, self._player_repo)
-        self._component_repo = LocalComponentRepository(self.data_dir, self._tournament_repo)
-        self._round_repo = LocalRoundRepository(self.data_dir, self._tournament_repo, self._component_repo)
-        self._match_repo = LocalMatchRepository(self.data_dir, self._tournament_repo, self._component_repo,
-                                               self._round_repo, self._player_repo)
+        self._tournament_repo = LocalTournamentRepository(
+            self.data_dir, self._player_repo, self._venue_repo, self._format_repo
+        )
+        self._registration_repo = LocalRegistrationRepository(
+            self.data_dir, self._tournament_repo, self._player_repo
+        )
+        self._component_repo = LocalComponentRepository(
+            self.data_dir, self._tournament_repo
+        )
+        self._round_repo = LocalRoundRepository(
+            self.data_dir, self._tournament_repo, self._component_repo
+        )
+        self._match_repo = LocalMatchRepository(
+            self.data_dir,
+            self._tournament_repo,
+            self._component_repo,
+            self._round_repo,
+            self._player_repo,
+        )
 
     @property
     def players(self) -> PlayerRepository:
@@ -815,7 +856,7 @@ class LocalDataLayer(DataLayer):
     def matches(self) -> MatchRepository:
         return self._match_repo
 
-    async def seed_data(self, data: Dict[str, List[Dict[str, Any]]]) -> None:
+    async def seed_data(self, data: dict[str, list[dict[str, Any]]]) -> None:
         """Seed the data layer with test/demo data."""
         # Clear existing data first
         await self.clear_all_data()
@@ -868,7 +909,7 @@ class LocalDataLayer(DataLayer):
         await self._api_key_repo._clear_all()
         await self._player_repo._clear_all()
 
-    async def health_check(self) -> Dict[str, Any]:
+    async def health_check(self) -> dict[str, Any]:
         """Perform health check and return status information."""
         # Force load all repositories to get accurate counts
         await self._player_repo._ensure_loaded()

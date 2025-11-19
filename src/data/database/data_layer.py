@@ -3,22 +3,22 @@
 AIA EAI Hin R Claude Code [Sonnet 4.5] v1.0
 """
 
-from typing import Any, Dict, List
+from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.data.interface import DataLayer, APIKeyRepository
 from src.data.database.connection import DatabaseConnection
 from src.data.database.repositories import (
-    DatabasePlayerRepository,
-    DatabaseVenueRepository,
-    DatabaseFormatRepository,
-    DatabaseTournamentRepository,
-    DatabaseRegistrationRepository,
     DatabaseComponentRepository,
-    DatabaseRoundRepository,
+    DatabaseFormatRepository,
     DatabaseMatchRepository,
+    DatabasePlayerRepository,
+    DatabaseRegistrationRepository,
+    DatabaseRoundRepository,
+    DatabaseTournamentRepository,
+    DatabaseVenueRepository,
 )
+from src.data.interface import APIKeyRepository, DataLayer
 
 
 class DatabaseDataLayer(DataLayer):
@@ -106,56 +106,72 @@ class DatabaseDataLayer(DataLayer):
     def players(self) -> DatabasePlayerRepository:
         """Access to player repository."""
         if not self._players:
-            raise RuntimeError("DataLayer not initialized. Call await data_layer.initialize() first.")
+            raise RuntimeError(
+                "DataLayer not initialized. Call await data_layer.initialize() first."
+            )
         return self._players
 
     @property
     def venues(self) -> DatabaseVenueRepository:
         """Access to venue repository."""
         if not self._venues:
-            raise RuntimeError("DataLayer not initialized. Call await data_layer.initialize() first.")
+            raise RuntimeError(
+                "DataLayer not initialized. Call await data_layer.initialize() first."
+            )
         return self._venues
 
     @property
     def formats(self) -> DatabaseFormatRepository:
         """Access to format repository."""
         if not self._formats:
-            raise RuntimeError("DataLayer not initialized. Call await data_layer.initialize() first.")
+            raise RuntimeError(
+                "DataLayer not initialized. Call await data_layer.initialize() first."
+            )
         return self._formats
 
     @property
     def tournaments(self) -> DatabaseTournamentRepository:
         """Access to tournament repository."""
         if not self._tournaments:
-            raise RuntimeError("DataLayer not initialized. Call await data_layer.initialize() first.")
+            raise RuntimeError(
+                "DataLayer not initialized. Call await data_layer.initialize() first."
+            )
         return self._tournaments
 
     @property
     def registrations(self) -> DatabaseRegistrationRepository:
         """Access to registration repository."""
         if not self._registrations:
-            raise RuntimeError("DataLayer not initialized. Call await data_layer.initialize() first.")
+            raise RuntimeError(
+                "DataLayer not initialized. Call await data_layer.initialize() first."
+            )
         return self._registrations
 
     @property
     def components(self) -> DatabaseComponentRepository:
         """Access to component repository."""
         if not self._components:
-            raise RuntimeError("DataLayer not initialized. Call await data_layer.initialize() first.")
+            raise RuntimeError(
+                "DataLayer not initialized. Call await data_layer.initialize() first."
+            )
         return self._components
 
     @property
     def rounds(self) -> DatabaseRoundRepository:
         """Access to round repository."""
         if not self._rounds:
-            raise RuntimeError("DataLayer not initialized. Call await data_layer.initialize() first.")
+            raise RuntimeError(
+                "DataLayer not initialized. Call await data_layer.initialize() first."
+            )
         return self._rounds
 
     @property
     def matches(self) -> DatabaseMatchRepository:
         """Access to match repository."""
         if not self._matches:
-            raise RuntimeError("DataLayer not initialized. Call await data_layer.initialize() first.")
+            raise RuntimeError(
+                "DataLayer not initialized. Call await data_layer.initialize() first."
+            )
         return self._matches
 
     @property
@@ -163,7 +179,7 @@ class DatabaseDataLayer(DataLayer):
         """Access to API key repository."""
         raise NotImplementedError("API key repository not yet implemented")
 
-    async def seed_data(self, data: Dict[str, List[Dict[str, Any]]]) -> None:
+    async def seed_data(self, data: dict[str, list[dict[str, Any]]]) -> None:
         """Seed the data layer with test/demo data.
 
         Args:
@@ -181,11 +197,11 @@ class DatabaseDataLayer(DataLayer):
             match_repo = DatabaseMatchRepository(session)
 
             # Seed in dependency order
-            from src.models.player import Player
-            from src.models.venue import Venue
             from src.models.format import Format
+            from src.models.match import Component, Match, Round
+            from src.models.player import Player
             from src.models.tournament import Tournament, TournamentRegistration
-            from src.models.match import Component, Round, Match
+            from src.models.venue import Venue
 
             # Players first (no dependencies)
             for player_dict in data.get("players", []):
@@ -235,7 +251,7 @@ class DatabaseDataLayer(DataLayer):
         await self.db.drop_tables()
         await self.db.create_tables()
 
-    async def health_check(self) -> Dict[str, Any]:
+    async def health_check(self) -> dict[str, Any]:
         """Perform health check and return status information."""
         try:
             # Try to execute a simple query
@@ -244,9 +260,11 @@ class DatabaseDataLayer(DataLayer):
                 result = await session.execute(text("SELECT 1"))
                 result.fetchone()
 
+            db_url = self.db.database_url
+            masked_url = db_url.split("@")[-1] if "@" in db_url else db_url
             return {
                 "status": "healthy",
-                "database_url": self.db.database_url.split("@")[-1] if "@" in self.db.database_url else self.db.database_url,
+                "database_url": masked_url,
                 "connection": "active"
             }
         except Exception as e:

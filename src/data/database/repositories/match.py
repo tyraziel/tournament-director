@@ -3,15 +3,14 @@
 AIA EAI Hin R Claude Code [Sonnet 4.5] v1.0
 """
 
-from typing import List, Optional
 from uuid import UUID
 
-from sqlalchemy import select, or_
+from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.data.database.models import MatchModel
 from src.data.exceptions import DuplicateError, NotFoundError
 from src.data.interface import MatchRepository
-from src.data.database.models import MatchModel
 from src.models.match import Match
 
 
@@ -78,7 +77,7 @@ class DatabaseMatchRepository(MatchRepository):
 
         return self._to_pydantic(db_match)
 
-    async def list_by_tournament(self, tournament_id: UUID) -> List[Match]:
+    async def list_by_tournament(self, tournament_id: UUID) -> list[Match]:
         """List matches for a tournament, ordered by round number."""
         stmt = select(MatchModel).where(
             MatchModel.tournament_id == tournament_id
@@ -89,7 +88,7 @@ class DatabaseMatchRepository(MatchRepository):
 
         return [self._to_pydantic(db_match) for db_match in db_matches]
 
-    async def list_by_round(self, round_id: UUID) -> List[Match]:
+    async def list_by_round(self, round_id: UUID) -> list[Match]:
         """List matches for a round, ordered by table number."""
         stmt = select(MatchModel).where(
             MatchModel.round_id == round_id
@@ -100,7 +99,7 @@ class DatabaseMatchRepository(MatchRepository):
 
         return [self._to_pydantic(db_match) for db_match in db_matches]
 
-    async def list_by_component(self, component_id: UUID) -> List[Match]:
+    async def list_by_component(self, component_id: UUID) -> list[Match]:
         """List matches for a component, ordered by round and table number."""
         stmt = select(MatchModel).where(
             MatchModel.component_id == component_id
@@ -112,8 +111,8 @@ class DatabaseMatchRepository(MatchRepository):
         return [self._to_pydantic(db_match) for db_match in db_matches]
 
     async def list_by_player(
-        self, player_id: UUID, tournament_id: Optional[UUID] = None
-    ) -> List[Match]:
+        self, player_id: UUID, tournament_id: UUID | None = None
+    ) -> list[Match]:
         """List matches for a player, optionally filtered by tournament."""
         stmt = select(MatchModel).where(
             or_(

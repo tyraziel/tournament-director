@@ -7,14 +7,23 @@ with focus on Magic: The Gathering Pauper tournaments.
 AIA EAI Hin R Claude Code [Sonnet 4.5] v1.0
 """
 
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
-from typing import AsyncGenerator
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from src.api.routers import health, players, venues, formats, tournaments, registrations, rounds, matches
+from src.api.routers import (
+    formats,
+    health,
+    matches,
+    players,
+    registrations,
+    rounds,
+    tournaments,
+    venues,
+)
 
 
 @asynccontextmanager

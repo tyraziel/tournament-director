@@ -8,20 +8,20 @@ AIA EAI Hin R Claude Code [Sonnet 4.5] v1.0
 """
 
 import logging
-from uuid import UUID
 
-from src.models.tournament import TournamentRegistration
 from src.models.match import Match
+from src.models.tournament import TournamentRegistration
+
 from .models import StandingsEntry
 from .tiebreakers import (
-    calculate_match_win_percentage,
     calculate_game_win_percentage,
-    calculate_opponent_match_win_percentage,
+    calculate_match_win_percentage,
     calculate_opponent_game_win_percentage,
-    get_player_matches,
-    get_match_result_for_player,
+    calculate_opponent_match_win_percentage,
     get_game_result_for_player,
+    get_match_result_for_player,
     get_opponent_id,
+    get_player_matches,
     is_bye_match,
 )
 
@@ -74,9 +74,9 @@ def calculate_standings(
         match_points = 0
 
         for match in player_matches:
-            w, l, d = get_match_result_for_player(player, match)
+            w, loss, d = get_match_result_for_player(player, match)
             wins += w
-            losses += l
+            losses += loss
             draws += d
 
         # Calculate match points (3 for win, 1 for draw, 0 for loss)
@@ -112,7 +112,7 @@ def calculate_standings(
             if tb_name == "random":
                 # Random tiebreaker - just use a random value
                 import random
-                tiebreaker_values[tb_name] = random.random()
+                tiebreaker_values[tb_name] = random.random()  # noqa: S311
             elif tb_name in TIEBREAKER_CALCULATORS:
                 calculator = TIEBREAKER_CALCULATORS[tb_name]
                 tiebreaker_values[tb_name] = calculator(player, matches, players, config)

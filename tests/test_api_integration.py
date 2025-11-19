@@ -6,13 +6,13 @@ Tests complete CRUD workflows using httpx TestClient.
 AIA EAI Hin R Claude Code [Sonnet 4.5] v1.0
 """
 
-import pytest
-import pytest_asyncio
-from httpx import AsyncClient, ASGITransport
 from uuid import uuid4
 
+import pytest
+import pytest_asyncio
+from httpx import ASGITransport, AsyncClient
+
 from src.api.main import app
-from src.models.base import GameSystem, BaseFormat
 
 
 @pytest_asyncio.fixture
@@ -495,14 +495,21 @@ class TestTournamentEndpoints:
     async def test_update_tournament(self, client: AsyncClient):
         """Test updating a tournament."""
         # Create tournament first
-        player_response = await client.post("/players/", json={"name": "TO Update Test"})
-        venue_response = await client.post("/venues/", json={"name": "Store Update", "address": "123 St"})
-        format_response = await client.post("/formats/", json={
-            "name": "Format for Update Test",
-            "game_system": "magic_the_gathering",
-            "base_format": "constructed",
-            "card_pool": "All"
-        })
+        player_response = await client.post(
+            "/players/", json={"name": "TO Update Test"}
+        )
+        venue_response = await client.post(
+            "/venues/", json={"name": "Store Update", "address": "123 St"}
+        )
+        format_response = await client.post(
+            "/formats/",
+            json={
+                "name": "Format for Update Test",
+                "game_system": "magic_the_gathering",
+                "base_format": "constructed",
+                "card_pool": "All",
+            },
+        )
 
         tournament_response = await client.post("/tournaments/", json={
             "name": "Original Name",
@@ -527,14 +534,21 @@ class TestTournamentEndpoints:
     async def test_delete_tournament(self, client: AsyncClient):
         """Test deleting a tournament."""
         # Create tournament first
-        player_response = await client.post("/players/", json={"name": "TO Delete Test"})
-        venue_response = await client.post("/venues/", json={"name": "Store Delete", "address": "123 St"})
-        format_response = await client.post("/formats/", json={
-            "name": "Format for Delete Test",
-            "game_system": "magic_the_gathering",
-            "base_format": "constructed",
-            "card_pool": "All"
-        })
+        player_response = await client.post(
+            "/players/", json={"name": "TO Delete Test"}
+        )
+        venue_response = await client.post(
+            "/venues/", json={"name": "Store Delete", "address": "123 St"}
+        )
+        format_response = await client.post(
+            "/formats/",
+            json={
+                "name": "Format for Delete Test",
+                "game_system": "magic_the_gathering",
+                "base_format": "constructed",
+                "card_pool": "All",
+            },
+        )
 
         tournament_response = await client.post("/tournaments/", json={
             "name": "To Delete",
@@ -600,14 +614,21 @@ class TestTournamentEndpoints:
     async def test_start_tournament(self, client: AsyncClient):
         """Test starting a tournament."""
         # Create tournament with registrations
-        player_response = await client.post("/players/", json={"name": "TO Start Test"})
-        venue_response = await client.post("/venues/", json={"name": "Store Start", "address": "123 St"})
-        format_response = await client.post("/formats/", json={
-            "name": "Format for Start Test",
-            "game_system": "magic_the_gathering",
-            "base_format": "constructed",
-            "card_pool": "All"
-        })
+        player_response = await client.post(
+            "/players/", json={"name": "TO Start Test"}
+        )
+        venue_response = await client.post(
+            "/venues/", json={"name": "Store Start", "address": "123 St"}
+        )
+        format_response = await client.post(
+            "/formats/",
+            json={
+                "name": "Format for Start Test",
+                "game_system": "magic_the_gathering",
+                "base_format": "constructed",
+                "card_pool": "All",
+            },
+        )
 
         tournament_response = await client.post("/tournaments/", json={
             "name": "To Start",
@@ -630,14 +651,21 @@ class TestTournamentEndpoints:
     async def test_complete_tournament(self, client: AsyncClient):
         """Test completing a tournament."""
         # Create tournament
-        player_response = await client.post("/players/", json={"name": "TO Complete Test"})
-        venue_response = await client.post("/venues/", json={"name": "Store Complete", "address": "123 St"})
-        format_response = await client.post("/formats/", json={
-            "name": "Format for Complete Test",
-            "game_system": "magic_the_gathering",
-            "base_format": "constructed",
-            "card_pool": "All"
-        })
+        player_response = await client.post(
+            "/players/", json={"name": "TO Complete Test"}
+        )
+        venue_response = await client.post(
+            "/venues/", json={"name": "Store Complete", "address": "123 St"}
+        )
+        format_response = await client.post(
+            "/formats/",
+            json={
+                "name": "Format for Complete Test",
+                "game_system": "magic_the_gathering",
+                "base_format": "constructed",
+                "card_pool": "All",
+            },
+        )
 
         tournament_response = await client.post("/tournaments/", json={
             "name": "To Complete",
@@ -738,7 +766,9 @@ class TestRegistrationEndpoints:
     async def test_register_player_wrong_password(self, client: AsyncClient):
         """Test registration fails with wrong password."""
         # Create dependencies
-        player_response = await client.post("/players/", json={"name": "Charlie Wrong Password Test"})
+        player_response = await client.post(
+            "/players/", json={"name": "Charlie Wrong Password Test"}
+        )
         player_id = player_response.json()["id"]
 
         venue_response = await client.post("/venues/", json={
@@ -1135,21 +1165,25 @@ class TestRoundsAndMatchesEndpoints:
 
         # Pair Round 1 to create matches
         pair_response = await client.post(f"/tournaments/{tournament_id}/rounds/1/pair")
-        assert pair_response.status_code == 201, f"Pairing failed: {pair_response.status_code} - {pair_response.json()}"
+        assert pair_response.status_code == 201, (
+            f"Pairing failed: {pair_response.status_code} - {pair_response.json()}"
+        )
 
         return tournament_id, player_ids
 
     @pytest.mark.asyncio
     async def test_pair_round_success(self, client: AsyncClient):
         """Test generating pairings for a round."""
-        tournament_id, player_ids = await self._create_tournament_with_players(client, player_count=4)
+        tournament_id, player_ids = await self._create_tournament_with_players(
+            client, player_count=4
+        )
 
         # Pair round 1 (should already exist from tournament start, so try round 2)
         # First, we need to complete round 1 with results
         # Get round 1
         round1_response = await client.get(f"/tournaments/{tournament_id}/rounds/1")
         assert round1_response.status_code == 200
-        
+
         # This test will be completed after implementing the endpoints
         # For now, just test that the endpoint will exist
 
@@ -1220,7 +1254,9 @@ class TestRoundsAndMatchesEndpoints:
     @pytest.mark.asyncio
     async def test_submit_match_result(self, client: AsyncClient):
         """Test submitting a match result."""
-        tournament_id, player_ids = await self._create_tournament_with_players(client, player_count=4)
+        tournament_id, player_ids = await self._create_tournament_with_players(
+            client, player_count=4
+        )
 
         # Get matches
         matches_response = await client.get(f"/tournaments/{tournament_id}/matches")
@@ -1274,7 +1310,9 @@ class TestRoundsAndMatchesEndpoints:
     @pytest.mark.asyncio
     async def test_get_standings(self, client: AsyncClient):
         """Test getting tournament standings."""
-        tournament_id, player_ids = await self._create_tournament_with_players(client, player_count=4)
+        tournament_id, player_ids = await self._create_tournament_with_players(
+            client, player_count=4
+        )
 
         # Submit some results first
         matches_response = await client.get(f"/tournaments/{tournament_id}/matches")

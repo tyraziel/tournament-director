@@ -7,15 +7,15 @@ standings-based bracket pairing and no-rematch constraints.
 AIA EAI Hin R Claude Code [Sonnet 4.5] v1.0
 """
 
-import random
 import logging
-from uuid import UUID, uuid4
+import random
 from collections import defaultdict
+from uuid import UUID, uuid4
 
+from src.models.match import Component, Match
 from src.models.tournament import TournamentRegistration
-from src.models.match import Match, Component
-from src.swiss.standings import calculate_standings
 from src.swiss.models import StandingsEntry
+from src.swiss.standings import calculate_standings
 
 logger = logging.getLogger(__name__)
 
@@ -286,14 +286,16 @@ def pair_round(
             f"rank={bye_player.rank}, points={bye_player.match_points}"
         )
         # Remove bye player from pairing pool
-        pairings_standings = [s for s in standings if s.player.player_id != bye_player.player.player_id]
+        pairings_standings = [
+            s for s in standings if s.player.player_id != bye_player.player.player_id
+        ]
 
     # Group players into brackets by match points
     brackets = _group_into_brackets(pairings_standings)
     logger.info(f"Round {round_number}: Grouped players into {len(brackets)} bracket(s)")
     logger.debug(
         f"Round {round_number}: Bracket breakdown: "
-        f"{dict((points, len(players)) for points, players in brackets.items())}"
+        f"{ {points: len(players) for points, players in brackets.items()} }"
     )
 
     # Pair players within brackets
@@ -361,12 +363,16 @@ def pair_round(
             table_number=None,
         )
         new_matches.append(bye_match)
-        logger.debug(f"Round {round_number}: Bye match added for player=seq#{bye_player.player.sequence_id}")
+        logger.debug(
+            f"Round {round_number}: Bye match added for "
+            f"player=seq#{bye_player.player.sequence_id}"
+        )
 
+    regular_count = len([m for m in new_matches if m.player2_id is not None])
+    bye_count = len([m for m in new_matches if m.player2_id is None])
     logger.info(
         f"Round {round_number} pairing complete: {len(new_matches)} matches created "
-        f"({len([m for m in new_matches if m.player2_id is not None])} regular, "
-        f"{len([m for m in new_matches if m.player2_id is None])} bye)"
+        f"({regular_count} regular, {bye_count} bye)"
     )
 
     return new_matches
