@@ -6,8 +6,12 @@ AIA EAI Hin R Claude Code [Sonnet 4.5] v1.0
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
-from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, create_async_engine
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.ext.asyncio import (
+    AsyncEngine,
+    AsyncSession,
+    async_sessionmaker,
+    create_async_engine,
+)
 
 from src.data.database.models import Base
 
@@ -32,7 +36,7 @@ class DatabaseConnection:
             pool_pre_ping=True,  # Verify connections before using
         )
 
-        self.async_session_maker = sessionmaker(
+        self.async_session_maker = async_sessionmaker(
             self.engine,
             class_=AsyncSession,
             expire_on_commit=False,
