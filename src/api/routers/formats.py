@@ -42,7 +42,7 @@ async def list_formats(
         List of Format objects
     """
     if game_system:
-        formats = await data_layer.formats.find_by_game_system(game_system)
+        formats = await data_layer.formats.list_by_game_system(game_system.value)
     else:
         formats = await data_layer.formats.list_all()
 
@@ -112,7 +112,7 @@ async def get_format(
         404: Format not found
     """
     try:
-        format_obj = await data_layer.formats.get(format_id)
+        format_obj = await data_layer.formats.get_by_id(format_id)
         return format_obj
     except NotFoundError:
         raise HTTPException(
@@ -149,7 +149,7 @@ async def update_format(
     """
     try:
         # Get existing format
-        existing_format = await data_layer.formats.get(format_id)
+        existing_format = await data_layer.formats.get_by_id(format_id)
 
         # Apply updates (only non-None fields)
         update_dict = format_data.model_dump(exclude_unset=True)
@@ -222,7 +222,7 @@ async def list_formats_by_game(
     Returns:
         List of Format objects for the specified game system
     """
-    formats = await data_layer.formats.find_by_game_system(game_system)
+    formats = await data_layer.formats.list_by_game_system(game_system.value)
 
     # Apply pagination
     start = pagination["offset"]
