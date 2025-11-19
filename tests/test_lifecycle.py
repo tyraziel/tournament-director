@@ -216,16 +216,319 @@ class TestRoundAdvancement:
 class TestTournamentStateMachine:
     """Test tournament state transitions."""
 
-    def test_tournament_start(self):
+    def test_start_tournament_from_draft(self):
         """
-        SCENARIO: Tournament moves from PENDING to IN_PROGRESS
-        EXPECTED: Generate Round 1 pairings
+        SCENARIO: Tournament in DRAFT status, TO clicks "Start Tournament"
+        EXPECTED: Status changes to IN_PROGRESS, Round 1 created with pairings
         """
-        pytest.skip("Tournament state machine not yet implemented")
+        # AIA EAI Hin R Claude Code [Sonnet 4.5] v1.0 - TDD RED phase
+        from src.lifecycle import start_tournament
 
-    def test_tournament_completion(self):
+        # Create tournament in DRAFT status
+        tournament_id = uuid4()
+        venue_id = uuid4()
+        format_id = uuid4()
+        to_id = uuid4()
+
+        tournament = Tournament(
+            id=tournament_id,
+            name="Friday Night Pauper",
+            status=TournamentStatus.DRAFT,
+            registration=RegistrationControl(),
+            format_id=format_id,
+            venue_id=venue_id,
+            created_by=to_id,
+        )
+
+        # Create Swiss component
+        component_id = uuid4()
+        component = Component(
+            id=component_id,
+            tournament_id=tournament_id,
+            type=ComponentType.SWISS,
+            name="Swiss Rounds",
+            sequence_order=1,
+            status=ComponentStatus.PENDING,
+            config={"max_rounds": 3},
+        )
+
+        # Create 8 registered players
+        registrations = [
+            TournamentRegistration(
+                id=uuid4(),
+                tournament_id=tournament_id,
+                player_id=uuid4(),
+                sequence_id=i + 1,
+                status=PlayerStatus.ACTIVE,
+            )
+            for i in range(8)
+        ]
+
+        # Start tournament
+        round1 = start_tournament(tournament, component, registrations)
+
+        # Verify tournament state changed
+        assert tournament.status == TournamentStatus.IN_PROGRESS
+        assert tournament.start_time is not None
+
+        # Verify component activated
+        assert component.status == ComponentStatus.ACTIVE
+
+        # Verify Round 1 created
+        assert round1 is not None
+        assert round1.round_number == 1
+        assert round1.status == RoundStatus.ACTIVE
+        assert round1.tournament_id == tournament_id
+        assert round1.component_id == component_id
+
+    def test_start_tournament_requires_minimum_players(self):
         """
-        SCENARIO: Final round completes
-        EXPECTED: Tournament status changes to COMPLETED
+        SCENARIO: Try to start tournament with 0 or 1 player
+        EXPECTED: Raise ValueError with helpful message
         """
-        pytest.skip("Tournament state machine not yet implemented")
+        # AIA EAI Hin R Claude Code [Sonnet 4.5] v1.0 - TDD RED phase
+        from src.lifecycle import start_tournament
+
+        tournament_id = uuid4()
+        tournament = Tournament(
+            id=tournament_id,
+            name="Empty Tournament",
+            status=TournamentStatus.DRAFT,
+            registration=RegistrationControl(),
+            format_id=uuid4(),
+            venue_id=uuid4(),
+            created_by=uuid4(),
+        )
+
+        component = Component(
+            id=uuid4(),
+            tournament_id=tournament_id,
+            type=ComponentType.SWISS,
+            name="Swiss Rounds",
+            sequence_order=1,
+            status=ComponentStatus.PENDING,
+            config={"max_rounds": 3},
+        )
+
+        # Case 1: No players
+        with pytest.raises(ValueError, match="at least 2 players"):
+            start_tournament(tournament, component, [])
+
+        # Case 2: Only 1 player
+        one_player = [
+            TournamentRegistration(
+                id=uuid4(),
+                tournament_id=tournament_id,
+                player_id=uuid4(),
+                sequence_id=1,
+                status=PlayerStatus.ACTIVE,
+            )
+        ]
+
+        with pytest.raises(ValueError, match="at least 2 players"):
+            start_tournament(tournament, component, one_player)
+
+    def test_start_tournament_only_from_valid_states(self):
+        """
+        SCENARIO: Try to start tournament that's already IN_PROGRESS or COMPLETED
+        EXPECTED: Raise ValueError indicating invalid state transition
+        """
+        # AIA EAI Hin R Claude Code [Sonnet 4.5] v1.0 - TDD RED phase
+        from src.lifecycle import start_tournament
+
+        tournament_id = uuid4()
+        component = Component(
+            id=uuid4(),
+            tournament_id=tournament_id,
+            type=ComponentType.SWISS,
+            name="Swiss Rounds",
+            sequence_order=1,
+            status=ComponentStatus.ACTIVE,
+            config={},
+        )
+
+        registrations = [
+            TournamentRegistration(
+                id=uuid4(),
+                tournament_id=tournament_id,
+                player_id=uuid4(),
+                sequence_id=i + 1,
+                status=PlayerStatus.ACTIVE,
+            )
+            for i in range(4)
+        ]
+
+        # Case 1: Already IN_PROGRESS
+        tournament_in_progress = Tournament(
+            id=tournament_id,
+            name="In Progress Tournament",
+            status=TournamentStatus.IN_PROGRESS,
+            registration=RegistrationControl(),
+            format_id=uuid4(),
+            venue_id=uuid4(),
+            created_by=uuid4(),
+        )
+
+        with pytest.raises(ValueError, match="Cannot start tournament.*in_progress"):
+            start_tournament(tournament_in_progress, component, registrations)
+
+        # Case 2: Already COMPLETED
+        tournament_completed = Tournament(
+            id=tournament_id,
+            name="Completed Tournament",
+            status=TournamentStatus.COMPLETED,
+            registration=RegistrationControl(),
+            format_id=uuid4(),
+            venue_id=uuid4(),
+            created_by=uuid4(),
+        )
+
+        with pytest.raises(ValueError, match="Cannot start tournament.*completed"):
+            start_tournament(tournament_completed, component, registrations)
+
+    def test_end_tournament_manual(self):
+        """
+        SCENARIO: TO manually ends tournament (early termination or final round)
+        EXPECTED: Status changes to COMPLETED, end_time set, component completed
+        """
+        # AIA EAI Hin R Claude Code [Sonnet 4.5] v1.0 - TDD RED phase
+        from src.lifecycle import end_tournament
+
+        tournament_id = uuid4()
+        tournament = Tournament(
+            id=tournament_id,
+            name="Kitchen Table Pauper",
+            status=TournamentStatus.IN_PROGRESS,
+            registration=RegistrationControl(),
+            format_id=uuid4(),
+            venue_id=uuid4(),
+            created_by=uuid4(),
+            start_time=datetime.now(timezone.utc),
+        )
+
+        component = Component(
+            id=uuid4(),
+            tournament_id=tournament_id,
+            type=ComponentType.SWISS,
+            name="Swiss Rounds",
+            sequence_order=1,
+            status=ComponentStatus.ACTIVE,
+            config={"max_rounds": 3},
+        )
+
+        # End tournament
+        end_tournament(tournament, component)
+
+        # Verify tournament completed
+        assert tournament.status == TournamentStatus.COMPLETED
+        assert tournament.end_time is not None
+
+        # Verify component completed
+        assert component.status == ComponentStatus.COMPLETED
+
+    def test_end_tournament_only_from_in_progress(self):
+        """
+        SCENARIO: Try to end tournament that's DRAFT or already COMPLETED
+        EXPECTED: Raise ValueError indicating invalid state
+        """
+        # AIA EAI Hin R Claude Code [Sonnet 4.5] v1.0 - TDD RED phase
+        from src.lifecycle import end_tournament
+
+        tournament_id = uuid4()
+        component = Component(
+            id=uuid4(),
+            tournament_id=tournament_id,
+            type=ComponentType.SWISS,
+            name="Swiss Rounds",
+            sequence_order=1,
+            status=ComponentStatus.PENDING,
+            config={},
+        )
+
+        # Case 1: Tournament in DRAFT (never started)
+        tournament_draft = Tournament(
+            id=tournament_id,
+            name="Draft Tournament",
+            status=TournamentStatus.DRAFT,
+            registration=RegistrationControl(),
+            format_id=uuid4(),
+            venue_id=uuid4(),
+            created_by=uuid4(),
+        )
+
+        with pytest.raises(ValueError, match="Cannot end tournament.*draft"):
+            end_tournament(tournament_draft, component)
+
+        # Case 2: Tournament already COMPLETED
+        tournament_completed = Tournament(
+            id=tournament_id,
+            name="Completed Tournament",
+            status=TournamentStatus.COMPLETED,
+            registration=RegistrationControl(),
+            format_id=uuid4(),
+            venue_id=uuid4(),
+            created_by=uuid4(),
+        )
+
+        with pytest.raises(ValueError, match="Cannot end tournament.*completed"):
+            end_tournament(tournament_completed, component)
+
+    def test_automatic_tournament_completion_on_max_rounds(self):
+        """
+        SCENARIO: Round 3 (final round) completes, advance_to_next_round called
+        EXPECTED: advance_to_next_round automatically ends tournament, returns None
+        """
+        # AIA EAI Hin R Claude Code [Sonnet 4.5] v1.0 - TDD RED phase
+        from src.lifecycle import advance_to_next_round
+
+        tournament_id = uuid4()
+        component_id = uuid4()
+
+        tournament = Tournament(
+            id=tournament_id,
+            name="Auto-Complete Tournament",
+            status=TournamentStatus.IN_PROGRESS,
+            registration=RegistrationControl(),
+            format_id=uuid4(),
+            venue_id=uuid4(),
+            created_by=uuid4(),
+            start_time=datetime.now(timezone.utc),
+        )
+
+        component = Component(
+            id=component_id,
+            tournament_id=tournament_id,
+            type=ComponentType.SWISS,
+            name="Swiss Rounds",
+            sequence_order=1,
+            status=ComponentStatus.ACTIVE,
+            config={"max_rounds": 3},
+        )
+
+        # Round 3 just completed
+        round3 = Round(
+            id=uuid4(),
+            tournament_id=tournament_id,
+            component_id=component_id,
+            round_number=3,
+            status=RoundStatus.ACTIVE,
+            start_time=datetime.now(timezone.utc),
+        )
+
+        # Advance past final round
+        round4 = advance_to_next_round(
+            round3, component_id, tournament_id, tournament=tournament, component=component, max_rounds=3
+        )
+
+        # Verify no next round created
+        assert round4 is None
+
+        # Verify Round 3 marked complete
+        assert round3.status == RoundStatus.COMPLETED
+
+        # Verify tournament auto-completed
+        assert tournament.status == TournamentStatus.COMPLETED
+        assert tournament.end_time is not None
+
+        # Verify component auto-completed
+        assert component.status == ComponentStatus.COMPLETED

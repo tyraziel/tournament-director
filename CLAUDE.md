@@ -219,6 +219,11 @@ Each entity has its own repository with full CRUD operations:
 - **Full tournament integration tests** (8-player, 7-player with byes, drops & late entries)
 - **Impossible pairing detection** with Tournament Organizer guidance
 - **Minimum tournament size validation** (2+ players)
+- **Tournament state machine** (DRAFT → IN_PROGRESS → COMPLETED transitions)
+  - Manual start: TO-initiated tournament start with Round 1 creation
+  - Automatic end: Tournament auto-completes when max_rounds reached
+  - Manual end: TO can terminate tournament early
+  - State validation: Prevents invalid operations (e.g., starting completed tournament)
 
 ### 🔄 In Progress
 - FastAPI server with backend abstraction
@@ -229,15 +234,13 @@ Each entity has its own repository with full CRUD operations:
 - Textual TUI implementation
 - Discord bot integration
 - Elimination bracket pairing (single/double elimination)
-- Tournament state machine (PENDING → IN_PROGRESS → COMPLETED)
 
 ### Next Steps
 1. Complete FastAPI server implementation
 2. Add authentication and authorization
 3. Build TUI framework consuming API
-4. Implement tournament state machine
-5. Add Discord bot integration
-6. Production deployment setup
+4. Add Discord bot integration
+5. Production deployment setup
 
 ---
 
