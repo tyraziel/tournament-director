@@ -69,8 +69,7 @@ async def register_player(
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail=(
-                f"Player {registration_data.player_id} is already "
-                "registered for this tournament"
+                f"Player {registration_data.player_id} is already registered for this tournament"
             ),
         )
 
