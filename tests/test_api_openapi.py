@@ -308,3 +308,72 @@ class TestOpenAPISchema:
     def test_redoc_endpoint(self):
         """Test that /redoc endpoint is configured."""
         assert app.redoc_url == "/redoc"
+
+    def test_tournament_endpoints(self):
+        """Test that all tournament endpoints are documented."""
+        schema = app.openapi()
+        paths = schema["paths"]
+
+        # List and create
+        assert "/tournaments/" in paths
+        assert "get" in paths["/tournaments/"]
+        assert "post" in paths["/tournaments/"]
+
+        # Get, update, delete by ID
+        assert "/tournaments/{tournament_id}" in paths
+        assert "get" in paths["/tournaments/{tournament_id}"]
+        assert "put" in paths["/tournaments/{tournament_id}"]
+        assert "delete" in paths["/tournaments/{tournament_id}"]
+
+        # Filter endpoints
+        assert "/tournaments/status/{status}" in paths
+        assert "/tournaments/venue/{venue_id}" in paths
+        assert "/tournaments/format/{format_id}" in paths
+
+        # Lifecycle endpoints
+        assert "/tournaments/{tournament_id}/start" in paths
+        assert "post" in paths["/tournaments/{tournament_id}/start"]
+
+        assert "/tournaments/{tournament_id}/complete" in paths
+        assert "post" in paths["/tournaments/{tournament_id}/complete"]
+
+    def test_tournament_models(self):
+        """Test that tournament models are in the schema."""
+        schema = app.openapi()
+        schemas = schema["components"]["schemas"]
+
+        # Tournament models
+        assert "Tournament" in schemas
+        assert "TournamentCreate" in schemas
+        assert "TournamentUpdate" in schemas
+        assert "RegistrationControl" in schemas
+
+        # Verify Tournament model properties
+        tournament = schemas["Tournament"]
+        assert "properties" in tournament
+        assert "id" in tournament["properties"]
+        assert "name" in tournament["properties"]
+        assert "status" in tournament["properties"]
+        assert "registration" in tournament["properties"]
+
+        # Verify TournamentCreate model
+        tournament_create = schemas["TournamentCreate"]
+        assert "properties" in tournament_create
+        assert "name" in tournament_create["properties"]
+        assert "format_id" in tournament_create["properties"]
+        assert "venue_id" in tournament_create["properties"]
+
+    def test_tournament_status_enum(self):
+        """Test that TournamentStatus enum is properly defined."""
+        schema = app.openapi()
+        schemas = schema["components"]["schemas"]
+
+        assert "TournamentStatus" in schemas
+        tournament_status = schemas["TournamentStatus"]
+        assert "enum" in tournament_status
+
+        # Check for expected status values
+        status_values = tournament_status["enum"]
+        assert "draft" in status_values
+        assert "in_progress" in status_values
+        assert "completed" in status_values

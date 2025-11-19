@@ -399,3 +399,255 @@ class TestValidationErrors:
         """Test creating player without required fields."""
         response = await client.post("/players/", json={})
         assert response.status_code == 422
+
+
+class TestTournamentEndpoints:
+    """Test tournament CRUD and lifecycle endpoints."""
+
+    @pytest.mark.asyncio
+    async def test_create_tournament(self, client: AsyncClient):
+        """Test creating a new tournament."""
+        # First create dependencies (player, venue, format)
+        player_response = await client.post("/players/", json={"name": "Tournament Organizer"})
+        player_id = player_response.json()["id"]
+
+        venue_response = await client.post("/venues/", json={
+            "name": "Test Game Store",
+            "address": "123 Main St"
+        })
+        venue_id = venue_response.json()["id"]
+
+        format_response = await client.post("/formats/", json={
+            "name": "Pauper for Tournament Create Test",
+            "game_system": "magic_the_gathering",
+            "base_format": "constructed",
+            "card_pool": "Common only"
+        })
+        format_id = format_response.json()["id"]
+
+        # Now create tournament
+        tournament_data = {
+            "name": "Weekly Pauper",
+            "format_id": format_id,
+            "venue_id": venue_id,
+            "created_by": player_id,
+            "visibility": "public",
+            "description": "Weekly Pauper tournament",
+            "max_players": 16
+        }
+
+        response = await client.post("/tournaments/", json=tournament_data)
+        assert response.status_code == 201
+
+        data = response.json()
+        assert "id" in data
+        assert data["name"] == "Weekly Pauper"
+        assert data["status"] == "draft"
+        assert data["visibility"] == "public"
+        assert data["registration"]["max_players"] == 16
+
+    @pytest.mark.asyncio
+    async def test_list_tournaments(self, client: AsyncClient):
+        """Test listing all tournaments."""
+        response = await client.get("/tournaments/")
+        assert response.status_code == 200
+
+        data = response.json()
+        assert isinstance(data, list)
+
+    @pytest.mark.asyncio
+    async def test_get_tournament_by_id(self, client: AsyncClient):
+        """Test getting a specific tournament by ID."""
+        # Create tournament first
+        player_response = await client.post("/players/", json={"name": "TO"})
+        venue_response = await client.post("/venues/", json={"name": "Store", "address": "123 St"})
+        format_response = await client.post("/formats/", json={
+            "name": "Format",
+            "game_system": "magic_the_gathering",
+            "base_format": "constructed",
+            "card_pool": "All"
+        })
+
+        tournament_response = await client.post("/tournaments/", json={
+            "name": "Test Tournament",
+            "format_id": format_response.json()["id"],
+            "venue_id": venue_response.json()["id"],
+            "created_by": player_response.json()["id"]
+        })
+        tournament_id = tournament_response.json()["id"]
+
+        # Get tournament
+        response = await client.get(f"/tournaments/{tournament_id}")
+        assert response.status_code == 200
+
+        data = response.json()
+        assert data["id"] == tournament_id
+        assert data["name"] == "Test Tournament"
+
+    @pytest.mark.asyncio
+    async def test_get_tournament_not_found(self, client: AsyncClient):
+        """Test getting a non-existent tournament."""
+        fake_id = str(uuid4())
+        response = await client.get(f"/tournaments/{fake_id}")
+        assert response.status_code == 404
+
+    @pytest.mark.asyncio
+    async def test_update_tournament(self, client: AsyncClient):
+        """Test updating a tournament."""
+        # Create tournament first
+        player_response = await client.post("/players/", json={"name": "TO Update Test"})
+        venue_response = await client.post("/venues/", json={"name": "Store Update", "address": "123 St"})
+        format_response = await client.post("/formats/", json={
+            "name": "Format for Update Test",
+            "game_system": "magic_the_gathering",
+            "base_format": "constructed",
+            "card_pool": "All"
+        })
+
+        tournament_response = await client.post("/tournaments/", json={
+            "name": "Original Name",
+            "format_id": format_response.json()["id"],
+            "venue_id": venue_response.json()["id"],
+            "created_by": player_response.json()["id"]
+        })
+        tournament_id = tournament_response.json()["id"]
+
+        # Update tournament
+        response = await client.put(
+            f"/tournaments/{tournament_id}",
+            json={"name": "Updated Name", "description": "Updated description"}
+        )
+        assert response.status_code == 200
+
+        data = response.json()
+        assert data["name"] == "Updated Name"
+        assert data["description"] == "Updated description"
+
+    @pytest.mark.asyncio
+    async def test_delete_tournament(self, client: AsyncClient):
+        """Test deleting a tournament."""
+        # Create tournament first
+        player_response = await client.post("/players/", json={"name": "TO Delete Test"})
+        venue_response = await client.post("/venues/", json={"name": "Store Delete", "address": "123 St"})
+        format_response = await client.post("/formats/", json={
+            "name": "Format for Delete Test",
+            "game_system": "magic_the_gathering",
+            "base_format": "constructed",
+            "card_pool": "All"
+        })
+
+        tournament_response = await client.post("/tournaments/", json={
+            "name": "To Delete",
+            "format_id": format_response.json()["id"],
+            "venue_id": venue_response.json()["id"],
+            "created_by": player_response.json()["id"]
+        })
+        tournament_id = tournament_response.json()["id"]
+
+        # Delete tournament
+        response = await client.delete(f"/tournaments/{tournament_id}")
+        assert response.status_code == 204
+
+    @pytest.mark.asyncio
+    async def test_list_tournaments_by_status(self, client: AsyncClient):
+        """Test filtering tournaments by status."""
+        response = await client.get("/tournaments/status/draft")
+        assert response.status_code == 200
+
+        data = response.json()
+        assert isinstance(data, list)
+        # All returned tournaments should have DRAFT status
+        for tournament in data:
+            assert tournament["status"] == "draft"
+
+    @pytest.mark.asyncio
+    async def test_list_tournaments_by_venue(self, client: AsyncClient):
+        """Test filtering tournaments by venue."""
+        # Create venue
+        venue_response = await client.post("/venues/", json={
+            "name": "Specific Store",
+            "address": "456 Main St"
+        })
+        venue_id = venue_response.json()["id"]
+
+        # Query by venue
+        response = await client.get(f"/tournaments/venue/{venue_id}")
+        assert response.status_code == 200
+
+        data = response.json()
+        assert isinstance(data, list)
+
+    @pytest.mark.asyncio
+    async def test_list_tournaments_by_format(self, client: AsyncClient):
+        """Test filtering tournaments by format."""
+        # Create format
+        format_response = await client.post("/formats/", json={
+            "name": "Specific Format",
+            "game_system": "magic_the_gathering",
+            "base_format": "constructed",
+            "card_pool": "Test"
+        })
+        format_id = format_response.json()["id"]
+
+        # Query by format
+        response = await client.get(f"/tournaments/format/{format_id}")
+        assert response.status_code == 200
+
+        data = response.json()
+        assert isinstance(data, list)
+
+    @pytest.mark.asyncio
+    async def test_start_tournament(self, client: AsyncClient):
+        """Test starting a tournament."""
+        # Create tournament with registrations
+        player_response = await client.post("/players/", json={"name": "TO Start Test"})
+        venue_response = await client.post("/venues/", json={"name": "Store Start", "address": "123 St"})
+        format_response = await client.post("/formats/", json={
+            "name": "Format for Start Test",
+            "game_system": "magic_the_gathering",
+            "base_format": "constructed",
+            "card_pool": "All"
+        })
+
+        tournament_response = await client.post("/tournaments/", json={
+            "name": "To Start",
+            "format_id": format_response.json()["id"],
+            "venue_id": venue_response.json()["id"],
+            "created_by": player_response.json()["id"]
+        })
+        tournament_id = tournament_response.json()["id"]
+
+        # Register at least 2 players for tournament to start
+        # This will be tested more thoroughly once registration endpoints exist
+        # For now, we expect this to fail with "need at least 2 players" error
+
+        response = await client.post(f"/tournaments/{tournament_id}/start")
+        # Should fail with 400 because no players registered
+        assert response.status_code == 400
+        assert "at least 2 players" in response.json()["detail"]
+
+    @pytest.mark.asyncio
+    async def test_complete_tournament(self, client: AsyncClient):
+        """Test completing a tournament."""
+        # Create tournament
+        player_response = await client.post("/players/", json={"name": "TO Complete Test"})
+        venue_response = await client.post("/venues/", json={"name": "Store Complete", "address": "123 St"})
+        format_response = await client.post("/formats/", json={
+            "name": "Format for Complete Test",
+            "game_system": "magic_the_gathering",
+            "base_format": "constructed",
+            "card_pool": "All"
+        })
+
+        tournament_response = await client.post("/tournaments/", json={
+            "name": "To Complete",
+            "format_id": format_response.json()["id"],
+            "venue_id": venue_response.json()["id"],
+            "created_by": player_response.json()["id"]
+        })
+        tournament_id = tournament_response.json()["id"]
+
+        # Try to complete tournament (should fail - no components, was never started)
+        response = await client.post(f"/tournaments/{tournament_id}/complete")
+        assert response.status_code == 400
+        assert "no components" in response.json()["detail"]
