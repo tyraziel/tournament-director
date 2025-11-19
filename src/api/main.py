@@ -14,7 +14,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from src.api.routers import health, players, venues, formats, tournaments, registrations
+from src.api.routers import health, players, venues, formats, tournaments, registrations, rounds, matches
 
 
 @asynccontextmanager
@@ -77,6 +77,8 @@ app.include_router(venues.router, prefix="/venues", tags=["Venues"])
 app.include_router(formats.router, prefix="/formats", tags=["Formats"])
 app.include_router(tournaments.router, tags=["Tournaments"])
 app.include_router(registrations.router, tags=["Registrations"])
+app.include_router(rounds.router, tags=["Rounds"])
+app.include_router(matches.router, tags=["Matches"])
 
 
 # Global exception handler

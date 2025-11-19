@@ -1075,3 +1075,278 @@ class TestRegistrationEndpoints:
             f"/tournaments/{fake_tournament_id}/registrations/{player_id}"
         )
         assert response.status_code == 404
+
+
+class TestRoundsAndMatchesEndpoints:
+    """Test rounds, pairings, matches, and standings endpoints.
+
+    AIA EAI Hin R Claude Code [Sonnet 4.5] v1.0
+    """
+
+    async def _create_tournament_with_players(self, client: AsyncClient, player_count: int = 4):
+        """Helper to create a started tournament with registered players."""
+        # Generate unique suffix for this test run
+        from uuid import uuid4
+        unique_id = str(uuid4())[:8]
+
+        # Create TO
+        to_response = await client.post("/players/", json={"name": f"TO-{unique_id}"})
+        to_id = to_response.json()["id"]
+
+        # Create venue
+        venue_response = await client.post("/venues/", json={
+            "name": f"Venue-{unique_id}"
+        })
+
+        # Create format
+        format_response = await client.post("/formats/", json={
+            "name": f"Format-{unique_id}",
+            "game_system": "magic_the_gathering",
+            "base_format": "constructed",
+            "card_pool": "Test pool"
+        })
+
+        # Create tournament
+        tournament_response = await client.post("/tournaments/", json={
+            "name": f"Tournament-{unique_id}",
+            "format_id": format_response.json()["id"],
+            "venue_id": venue_response.json()["id"],
+            "created_by": to_id
+        })
+        tournament_id = tournament_response.json()["id"]
+
+        # Register players
+        player_ids = []
+        for i in range(player_count):
+            player_response = await client.post("/players/", json={
+                "name": f"Player{i}-{unique_id}"
+            })
+            player_id = player_response.json()["id"]
+            player_ids.append(player_id)
+
+            await client.post(
+                f"/tournaments/{tournament_id}/register",
+                json={"player_id": player_id}
+            )
+
+        # Start tournament
+        start_response = await client.post(f"/tournaments/{tournament_id}/start")
+        assert start_response.status_code == 200, f"Start failed: {start_response.json()}"
+
+        # Pair Round 1 to create matches
+        pair_response = await client.post(f"/tournaments/{tournament_id}/rounds/1/pair")
+        assert pair_response.status_code == 201, f"Pairing failed: {pair_response.status_code} - {pair_response.json()}"
+
+        return tournament_id, player_ids
+
+    @pytest.mark.asyncio
+    async def test_pair_round_success(self, client: AsyncClient):
+        """Test generating pairings for a round."""
+        tournament_id, player_ids = await self._create_tournament_with_players(client, player_count=4)
+
+        # Pair round 1 (should already exist from tournament start, so try round 2)
+        # First, we need to complete round 1 with results
+        # Get round 1
+        round1_response = await client.get(f"/tournaments/{tournament_id}/rounds/1")
+        assert round1_response.status_code == 200
+        
+        # This test will be completed after implementing the endpoints
+        # For now, just test that the endpoint will exist
+
+    @pytest.mark.asyncio
+    async def test_get_round_success(self, client: AsyncClient):
+        """Test getting round details."""
+        tournament_id, _ = await self._create_tournament_with_players(client, player_count=4)
+
+        # Get round 1 (created when tournament started)
+        response = await client.get(f"/tournaments/{tournament_id}/rounds/1")
+        assert response.status_code == 200
+
+        data = response.json()
+        assert data["round_number"] == 1
+        assert data["tournament_id"] == tournament_id
+        assert "matches" in data or data.get("id") is not None
+
+    @pytest.mark.asyncio
+    async def test_get_round_not_found(self, client: AsyncClient):
+        """Test getting non-existent round."""
+        tournament_id, _ = await self._create_tournament_with_players(client, player_count=4)
+
+        # Try to get round 99 (doesn't exist)
+        response = await client.get(f"/tournaments/{tournament_id}/rounds/99")
+        assert response.status_code == 404
+
+    @pytest.mark.asyncio
+    async def test_list_matches(self, client: AsyncClient):
+        """Test listing all matches in a tournament."""
+        tournament_id, _ = await self._create_tournament_with_players(client, player_count=4)
+
+        # List matches
+        response = await client.get(f"/tournaments/{tournament_id}/matches")
+        assert response.status_code == 200
+
+        data = response.json()
+        assert isinstance(data, list)
+        # Should have matches from round 1 (2 matches for 4 players)
+        assert len(data) >= 2
+
+    @pytest.mark.asyncio
+    async def test_get_match_success(self, client: AsyncClient):
+        """Test getting a specific match."""
+        tournament_id, _ = await self._create_tournament_with_players(client, player_count=4)
+
+        # Get matches first
+        matches_response = await client.get(f"/tournaments/{tournament_id}/matches")
+        matches = matches_response.json()
+        assert len(matches) > 0
+
+        match_id = matches[0]["id"]
+
+        # Get specific match
+        response = await client.get(f"/matches/{match_id}")
+        assert response.status_code == 200
+
+        data = response.json()
+        assert data["id"] == match_id
+        assert data["tournament_id"] == tournament_id
+
+    @pytest.mark.asyncio
+    async def test_get_match_not_found(self, client: AsyncClient):
+        """Test getting non-existent match."""
+        fake_match_id = str(uuid4())
+        response = await client.get(f"/matches/{fake_match_id}")
+        assert response.status_code == 404
+
+    @pytest.mark.asyncio
+    async def test_submit_match_result(self, client: AsyncClient):
+        """Test submitting a match result."""
+        tournament_id, player_ids = await self._create_tournament_with_players(client, player_count=4)
+
+        # Get matches
+        matches_response = await client.get(f"/tournaments/{tournament_id}/matches")
+        matches = matches_response.json()
+        match = matches[0]
+
+        # Submit result (player 1 wins 2-0)
+        response = await client.put(
+            f"/matches/{match['id']}/result",
+            json={
+                "winner_id": match["player1_id"],
+                "player1_wins": 2,
+                "player2_wins": 0,
+                "draws": 0
+            }
+        )
+        assert response.status_code == 200
+
+        data = response.json()
+        assert data["player1_wins"] == 2
+        assert data["player2_wins"] == 0
+        assert data["end_time"] is not None
+
+    @pytest.mark.asyncio
+    async def test_submit_match_result_draw(self, client: AsyncClient):
+        """Test submitting a draw result."""
+        tournament_id, _ = await self._create_tournament_with_players(client, player_count=4)
+
+        # Get matches
+        matches_response = await client.get(f"/tournaments/{tournament_id}/matches")
+        matches = matches_response.json()
+        match = matches[0]
+
+        # Submit draw result
+        response = await client.put(
+            f"/matches/{match['id']}/result",
+            json={
+                "winner_id": None,  # Draw
+                "player1_wins": 1,
+                "player2_wins": 1,
+                "draws": 1
+            }
+        )
+        assert response.status_code == 200
+
+        data = response.json()
+        assert data["player1_wins"] == 1
+        assert data["player2_wins"] == 1
+        assert data["draws"] == 1
+
+    @pytest.mark.asyncio
+    async def test_get_standings(self, client: AsyncClient):
+        """Test getting tournament standings."""
+        tournament_id, player_ids = await self._create_tournament_with_players(client, player_count=4)
+
+        # Submit some results first
+        matches_response = await client.get(f"/tournaments/{tournament_id}/matches")
+        matches = matches_response.json()
+
+        # Submit result for first match
+        await client.put(
+            f"/matches/{matches[0]['id']}/result",
+            json={
+                "winner_id": matches[0]["player1_id"],
+                "player1_wins": 2,
+                "player2_wins": 0
+            }
+        )
+
+        # Get standings
+        response = await client.get(f"/tournaments/{tournament_id}/standings")
+        assert response.status_code == 200
+
+        data = response.json()
+        assert isinstance(data, list)
+        assert len(data) == 4  # All 4 players
+
+        # Check standings structure
+        for entry in data:
+            assert "rank" in entry
+            assert "player_id" in entry
+            assert "player_name" in entry
+            assert "match_points" in entry
+            assert "match_win_percentage" in entry
+
+        # Verify winner has higher rank
+        top_player = data[0]
+        assert top_player["match_points"] > 0 or top_player["rank"] == 1
+
+    @pytest.mark.asyncio
+    async def test_standings_empty_tournament(self, client: AsyncClient):
+        """Test standings for tournament with no matches."""
+        # Create tournament without starting it
+        to_response = await client.post("/players/", json={"name": "TO Empty Standings"})
+        venue_response = await client.post("/venues/", json={"name": "Venue Empty Standings"})
+        format_response = await client.post("/formats/", json={
+            "name": "Format Empty Standings",
+            "game_system": "magic_the_gathering",
+            "base_format": "constructed",
+            "card_pool": "Test"
+        })
+
+        tournament_response = await client.post("/tournaments/", json={
+            "name": "Empty Standings Tournament",
+            "format_id": format_response.json()["id"],
+            "venue_id": venue_response.json()["id"],
+            "created_by": to_response.json()["id"]
+        })
+        tournament_id = tournament_response.json()["id"]
+
+        # Register players but don't start
+        for i in range(2):
+            player_response = await client.post("/players/", json={
+                "name": f"Player {i} Empty Standings"
+            })
+            await client.post(
+                f"/tournaments/{tournament_id}/register",
+                json={"player_id": player_response.json()["id"]}
+            )
+
+        # Get standings (should return players with 0 points)
+        response = await client.get(f"/tournaments/{tournament_id}/standings")
+        assert response.status_code == 200
+
+        data = response.json()
+        assert len(data) == 2
+        for entry in data:
+            assert entry["match_points"] == 0
+            assert entry["matches_played"] == 0

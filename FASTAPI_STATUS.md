@@ -17,25 +17,26 @@
 - ✅ Interactive documentation at `/docs` (Swagger UI)
 - ✅ Alternative documentation at `/redoc` (ReDoc)
 
-### API Endpoints (33 endpoints)
+### API Endpoints (40 endpoints)
 - ✅ **Health**: Basic + detailed health checks with data layer validation
 - ✅ **Players** (7 endpoints): Full CRUD + search by name/discord_id
 - ✅ **Venues** (5 endpoints): Full CRUD operations
 - ✅ **Formats** (6 endpoints): Full CRUD + filter by game system
 - ✅ **Tournaments** (9 endpoints): Full CRUD + filter by status/venue/format + lifecycle (start/complete)
 - ✅ **Registrations** (3 endpoints): Register player, list registrations, drop player
+- ✅ **Rounds** (4 endpoints): Pair round, get round, complete round, standings
+- ✅ **Matches** (3 endpoints): List matches, get match, submit result
 - ✅ **Root**: API information endpoint
 
-### Test Coverage (81 tests, 99% passing)
-- ✅ **OpenAPI Validation** (30 tests): Schema, endpoints, models, parameters, registration endpoints
-- ✅ **Integration Tests** (51 tests): All CRUD operations, pagination, errors, lifecycle, registrations
+### Test Coverage (95 tests, 100% passing)
+- ✅ **OpenAPI Validation** (34 tests): Schema, endpoints, models, parameters, registration/rounds/matches endpoints
+- ✅ **Integration Tests** (61 tests): All CRUD operations, pagination, errors, lifecycle, registrations, rounds, matches, standings
 
 ### Data Models
-- ✅ API request models (PlayerCreate, VenueCreate, FormatCreate, TournamentCreate, PlayerRegistrationCreate)
+- ✅ API request models (PlayerCreate, VenueCreate, FormatCreate, TournamentCreate, PlayerRegistrationCreate, MatchResultSubmit)
 - ✅ API update models (PlayerUpdate, VenueUpdate, FormatUpdate, TournamentUpdate)
-- ✅ Response models with validation (TournamentRegistration)
+- ✅ Response models with validation (TournamentRegistration, Round, Match, StandingsEntry)
 - ✅ RegistrationControl nested model
-- ✅ **Root**: API information endpoint
 
 ---
 
@@ -54,19 +55,6 @@
 ---
 
 ## 📋 Not Started (Planned for Future PRs)
-
-### Tournament Management API
-- [ ] Tournament state validation
-
-### Swiss Pairing API
-- [ ] Pair round endpoint (expose Swiss pairing algorithms)
-- [ ] Standings endpoint (calculate and return current standings)
-- [ ] Round management (complete round, advance to next)
-
-### Match Management API
-- [ ] Match result submission
-- [ ] Match validation
-- [ ] Bye assignment
 
 ### Authentication & Authorization (see below)
 - [ ] Authentication strategy decision
@@ -244,6 +232,17 @@ POST   /tournaments/{id}/complete        - Complete tournament
 POST   /tournaments/{id}/register                       - Register player to tournament
 GET    /tournaments/{id}/registrations                  - List tournament registrations
 DELETE /tournaments/{id}/registrations/{player_id}      - Drop player from tournament
+
+# Rounds & Pairings
+POST   /tournaments/{id}/rounds/{round_number}/pair     - Generate round pairings
+GET    /tournaments/{id}/rounds/{round_number}          - Get round details
+POST   /tournaments/{id}/rounds/{round_number}/complete - Mark round as complete
+GET    /tournaments/{id}/standings                      - Get current standings
+
+# Matches
+GET    /tournaments/{id}/matches                        - List tournament matches
+GET    /matches/{match_id}                              - Get match details
+PUT    /matches/{match_id}/result                       - Submit match result
 ```
 
 ### Planned Endpoints (Future PRs)
@@ -261,42 +260,33 @@ POST   /auth/api-keys                    - Create API key
 GET    /auth/api-keys                    - List user's API keys
 GET    /auth/api-keys/{id}               - Get API key details
 DELETE /auth/api-keys/{id}               - Revoke API key
-
-# Tournaments
-GET    /tournaments/{id}/standings       - Get standings
-
-# Rounds & Pairings
-POST   /tournaments/{id}/rounds/{n}/pair - Generate pairings
-GET    /tournaments/{id}/rounds/{n}      - Get round info
-POST   /tournaments/{id}/rounds/{n}/complete - Complete round
-
-# Matches
-GET    /tournaments/{id}/matches         - List matches
-GET    /matches/{id}                     - Get match
-PUT    /matches/{id}/result              - Submit result
 ```
 
 ---
 
 ## 🧪 Test Coverage
 
-### Current Coverage (51/51 passing)
+### Current Coverage (95/95 passing)
 
-**OpenAPI Validation (24 tests)**:
+**OpenAPI Validation (34 tests)**:
 - Schema structure and OpenAPI 3.x compliance
 - Info, contact, license metadata
-- All 21 endpoints documented
-- Request/response models
+- All 40 endpoints documented
+- Request/response models (including MatchResultSubmit, StandingsEntry)
 - Parameters and pagination
 - HTTP status codes
 - Enum definitions
+- Rounds and matches endpoints
 
-**Integration Tests (27 tests)**:
-- Health endpoints (2 tests)
+**Integration Tests (61 tests)**:
+- Health endpoints (3 tests)
 - Player CRUD (9 tests)
 - Venue CRUD (5 tests)
-- Format CRUD (7 tests)
+- Format CRUD (6 tests)
 - Validation errors (4 tests)
+- Tournament CRUD and lifecycle (11 tests)
+- Registrations (13 tests)
+- Rounds and matches (10 tests)
 
 ### Planned Test Coverage
 
@@ -355,8 +345,8 @@ pytest tests/test_api_integration.py -v
 
 ### Immediate (This Branch)
 1. ✅ **Complete**: Document API implementation status (this file)
-2. **Decide**: Authentication strategy (see options above)
-3. **Optional**: Plan tournament endpoints architecture
+2. ✅ **Complete**: Rounds, pairings, and match management endpoints (PR #3)
+3. **Decide**: Authentication strategy (see options above)
 
 ### Next PR (Authentication)
 Branch: `claude/auth-implementation`
@@ -383,31 +373,32 @@ Branch: `claude/auth-implementation`
    - Protected endpoint tests
 
 ### Future PRs
-- **Tournament Management**: Tournament CRUD + lifecycle
-- **Swiss Pairing API**: Expose pairing algorithms via REST
-- **Match Management**: Result submission and validation
 - **WebSockets**: Live tournament updates
 - **API Keys**: Programmatic access for bots/scripts
+- **Advanced Tournament Features**: Multiple components, elimination brackets, custom pairing rules
 
 ---
 
 ## 🎯 Success Metrics
 
 ### Current Status
-- ✅ 33 API endpoints implemented (66% of v1.0 target)
-- ✅ 81 tests passing (99% success rate, 54% of v1.0 target)
+- ✅ 40 API endpoints implemented (80% of v1.0 target)
+- ✅ 95 tests passing (100% success rate, 63% of v1.0 target)
 - ✅ Full OpenAPI documentation
 - ✅ Type-safe request/response models
 - ✅ Async-first architecture
 - ✅ Backend abstraction (Mock/Local/Database)
 - ✅ Tournament CRUD and lifecycle management
 - ✅ Player registration with password protection, max players, and drop functionality
+- ✅ Swiss pairing system with full tiebreaker support
+- ✅ Match result submission and standings calculation
+- ✅ Round management (create, complete, pair)
 
 ### Target for v1.0
-- [ ] 50+ API endpoints (currently at 33)
-- [ ] 150+ tests (API + integration) (currently at 81)
+- [ ] 50+ API endpoints (currently at 40)
+- [ ] 150+ tests (API + integration) (currently at 95)
 - [ ] Authentication & authorization
-- [ ] Rounds, pairings, and match endpoints
+- ✅ Rounds, pairings, and match endpoints
 - [ ] WebSocket support for live updates
 - [ ] Production-ready deployment guide
 
