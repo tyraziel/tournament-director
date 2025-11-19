@@ -9,3 +9,11 @@ ruff==0.6.0
 mypy==1.11.0
 tox==4.16.0
 aiofiles==24.1.0
+
+# Database support (async ORM and drivers)
+sqlalchemy[asyncio]==2.0.31
+alembic==1.13.1
+aiosqlite==0.20.0        # SQLite async driver
+asyncpg==0.29.0          # PostgreSQL async driver
+aiomysql==0.2.0          # MySQL/MariaDB async driver
+greenlet==3.0.3          # Required for SQLAlchemy async
