@@ -58,3 +58,35 @@ class Match(BaseModel):
     start_time: datetime | None = None
     end_time: datetime | None = None
     notes: str | None = None
+
+
+class MatchResultSubmit(BaseModel):
+    """Match result submission request model for API.
+
+    AIA EAI Hin R Claude Code [Sonnet 4.5] v1.0
+    """
+
+    winner_id: UUID | None = None  # None for draw, otherwise player1_id or player2_id
+    player1_wins: int = Field(..., ge=0)
+    player2_wins: int = Field(..., ge=0)
+    draws: int = Field(default=0, ge=0)
+    notes: str | None = None
+
+
+class StandingsEntry(BaseModel):
+    """Single entry in tournament standings response.
+
+    AIA EAI Hin R Claude Code [Sonnet 4.5] v1.0
+    """
+
+    rank: int
+    player_id: UUID
+    player_name: str  # Denormalized for convenience
+    sequence_id: int  # Player number (#1, #2, etc.)
+    match_points: int
+    game_points: int
+    matches_played: int
+    match_win_percentage: float
+    game_win_percentage: float
+    opponent_match_win_percentage: float
+    opponent_game_win_percentage: float

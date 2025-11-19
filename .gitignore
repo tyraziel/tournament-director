@@ -220,4 +220,8 @@ fabric.properties
 .idea/caches/build_file_checksums.ser
 
 # Tournament Director specific
-data/
+# Ignore data storage directories, but not src/data/ source code
+/data/
+*.db
+*.sqlite
+*.sqlite3

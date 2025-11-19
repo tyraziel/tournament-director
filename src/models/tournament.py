@@ -53,3 +53,50 @@ class TournamentRegistration(BaseModel):
     registration_time: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     drop_time: datetime | None = None
     notes: str | None = None
+
+
+class TournamentCreate(BaseModel):
+    """Tournament creation request model for API."""
+
+    name: str = Field(..., min_length=1, max_length=200)
+    format_id: UUID
+    venue_id: UUID
+    created_by: UUID  # Player ID of tournament organizer
+    visibility: TournamentVisibility = TournamentVisibility.PUBLIC
+    description: str | None = None
+    registration_deadline: datetime | None = None
+    auto_advance_rounds: bool = False
+    
+    # Registration control
+    registration_auto_open_time: datetime | None = None
+    registration_auto_close_time: datetime | None = None
+    registration_password: str | None = None
+    max_players: int | None = None
+
+
+class TournamentUpdate(BaseModel):
+    """Tournament update request model for API."""
+
+    name: str | None = Field(None, min_length=1, max_length=200)
+    status: TournamentStatus | None = None
+    visibility: TournamentVisibility | None = None
+    description: str | None = None
+    registration_deadline: datetime | None = None
+    auto_advance_rounds: bool | None = None
+
+    # Registration control
+    registration_auto_open_time: datetime | None = None
+    registration_auto_close_time: datetime | None = None
+    registration_password: str | None = None
+    max_players: int | None = None
+
+
+class PlayerRegistrationCreate(BaseModel):
+    """Player registration request model for API.
+
+    AIA EAI Hin R Claude Code [Sonnet 4.5] v1.0
+    """
+
+    player_id: UUID
+    password: str | None = None  # For password-protected tournaments
+    notes: str | None = None  # Optional registration notes
