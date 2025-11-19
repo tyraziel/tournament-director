@@ -198,6 +198,7 @@ def pair_round(
     component: Component,
     config: dict,
     round_number: int,
+    allow_rematches_override: bool | None = None,
 ) -> list[Match]:
     """
     Pair players for rounds 2+ using standings-based bracket pairing.
@@ -213,14 +214,18 @@ def pair_round(
         registrations: List of active tournament registrations
         matches: List of all matches from previous rounds
         component: Tournament component configuration
-        config: Tournament configuration (for tiebreakers)
+        config: Tournament configuration (for tiebreakers and rematch settings)
         round_number: The round number to pair
+        allow_rematches_override: If True, allows rematches when pairing is impossible.
+            If None, uses config["allow_rematches"] (default: False).
+            This is a per-round override for emergency situations.
 
     Returns:
         List of Match objects for this round
 
     Raises:
         ValueError: If pairing is impossible (all players have played each other)
+            and rematches are not allowed
     """
     logger.info(
         f"Starting Round {round_number} pairing: tournament={component.tournament_id}, "
@@ -335,12 +340,36 @@ def pair_round(
             f"Round {round_number}: {len(unpaired_players)} unpaired players after all brackets, "
             f"checking if pairing is impossible"
         )
-        # This means we couldn't pair some players - check if it's truly impossible
-        _raise_impossible_pairing_error(
-            unpaired_players,
-            pairing_history,
-            round_number,
+
+        # Determine if rematches are allowed
+        allow_rematches = (
+            allow_rematches_override
+            if allow_rematches_override is not None
+            else config.get("allow_rematches", False)
         )
+
+        if allow_rematches:
+            # TO has allowed rematches - pair remaining players
+            logger.warning(
+                f"Round {round_number}: Creating {len(unpaired_players)//2} REMATCH pairings "
+                f"(allow_rematches enabled)"
+            )
+            rematch_pairings = _create_rematch_pairings(
+                unpaired_players,
+                component,
+                round_id,
+                round_number,
+                len(new_matches),
+            )
+            new_matches.extend(rematch_pairings)
+            unpaired_players = []  # All paired now
+        else:
+            # Rematches not allowed - check if truly impossible and raise error
+            _raise_impossible_pairing_error(
+                unpaired_players,
+                pairing_history,
+                round_number,
+            )
 
     # Add bye match if we have a bye player
     if bye_player is not None:
@@ -370,6 +399,66 @@ def pair_round(
     )
 
     return new_matches
+
+
+def _create_rematch_pairings(
+    unpaired_players: list[StandingsEntry],
+    component: Component,
+    round_id: UUID,
+    round_number: int,
+    starting_table: int,
+) -> list[Match]:
+    """
+    Create rematch pairings for players who have all played each other.
+
+    This is used when the TO allows rematches (via allow_rematches config or override).
+    Pairs players in standings order - assumes they're already sorted by standings.
+
+    Args:
+        unpaired_players: Players who couldn't be paired without rematches
+        component: Tournament component
+        round_id: UUID for the current round
+        round_number: Current round number
+        starting_table: Starting table number for these matches
+
+    Returns:
+        List of Match objects (rematches)
+    """
+    matches = []
+    table_number = starting_table
+
+    for i in range(0, len(unpaired_players) - 1, 2):
+        player1 = unpaired_players[i]
+        player2 = unpaired_players[i + 1]
+
+        logger.warning(
+            f"Round {round_number}: REMATCH created - "
+            f"Player seq#{player1.player.sequence_id} vs seq#{player2.player.sequence_id} "
+            f"(table {table_number})"
+        )
+
+        match = Match(
+            id=uuid4(),
+            tournament_id=component.tournament_id,
+            component_id=component.id,
+            round_id=round_id,
+            round_number=round_number,
+            table_number=table_number,
+            player1_id=player1.player.player_id,
+            player2_id=player2.player.player_id,
+        )
+        matches.append(match)
+        table_number += 1
+
+    # Handle odd player (shouldn't happen, but defensive coding)
+    if len(unpaired_players) % 2 == 1:
+        last_player = unpaired_players[-1]
+        logger.error(
+            f"Round {round_number}: Odd number of unpaired players after rematches! "
+            f"Player seq#{last_player.player.sequence_id} still unpaired"
+        )
+
+    return matches
 
 
 def _raise_impossible_pairing_error(

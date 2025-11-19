@@ -678,7 +678,224 @@ class TestPlayerStateChanges:
 
 
 # =============================================================================
-# Test Case 5: Tiebreaker Calculations
+# Test Case 5: Impossible Pairing Scenarios
+# =============================================================================
+
+
+class TestImpossiblePairing:
+    """Test impossible pairing detection and rematch handling."""
+
+    def test_impossible_pairing_raises_error(self, base_tournament_data):
+        """
+        SCENARIO: 4 players, each plays everyone once in 3 rounds
+        After round 3, pairing is impossible without rematches
+
+        EXPECTED: ValueError raised with helpful TO guidance
+        """
+        # Create 4 players
+        players = create_test_players(4)
+        registrations = create_registrations(
+            base_tournament_data["tournament_id"], players
+        )
+
+        # Round 1: P1 vs P2, P3 vs P4
+        round1_pairings = pair_round_1(registrations, base_tournament_data["component"])
+        assert len(round1_pairings) == 2
+
+        # All player1s win
+        for match in round1_pairings:
+            match.player1_wins = 2
+            match.player2_wins = 0
+
+        # Round 2: Should pair winners (P1 vs P3) and losers (P2 vs P4)
+        config = {"standings_tiebreakers": ["omw", "gw", "ogw"]}
+        round2_pairings = pair_round(
+            registrations,
+            round1_pairings,
+            base_tournament_data["component"],
+            config,
+            round_number=2,
+        )
+        assert len(round2_pairings) == 2
+
+        # All player1s win again
+        for match in round2_pairings:
+            match.player1_wins = 2
+            match.player2_wins = 0
+
+        all_matches = round1_pairings + round2_pairings
+
+        # Round 3: Should be IMPOSSIBLE - all players have played each other
+        # P1 played: P2, P3  (needs to play P4)
+        # P2 played: P1, P4  (needs to play P3)
+        # P3 played: P4, P1  (needs to play P2)
+        # P4 played: P3, P2  (needs to play P1)
+        # Valid pairings: P1 vs P4, P2 vs P3
+
+        # But after 2 more rounds, all will have played each other!
+        round3_pairings = pair_round(
+            registrations,
+            all_matches,
+            base_tournament_data["component"],
+            config,
+            round_number=3,
+        )
+        for match in round3_pairings:
+            match.player1_wins = 2
+            match.player2_wins = 0
+
+        all_matches = round1_pairings + round2_pairings + round3_pairings
+
+        # Round 4: NOW it's impossible - everyone has played everyone
+        with pytest.raises(ValueError) as exc_info:
+            pair_round(
+                registrations,
+                all_matches,
+                base_tournament_data["component"],
+                config,
+                round_number=4,
+            )
+
+        # Verify error message provides TO guidance
+        error_msg = str(exc_info.value)
+        assert "IMPOSSIBLE PAIRING" in error_msg
+        assert "Tournament Organizer Actions:" in error_msg
+        assert "manually pair these players as rematches" in error_msg
+
+    def test_rematch_override_allows_pairing(self, base_tournament_data):
+        """
+        SCENARIO: Same as above, but with allow_rematches_override=True
+        EXPECTED: Pairing succeeds with rematch warnings
+        """
+        # Create 4 players
+        players = create_test_players(4)
+        registrations = create_registrations(
+            base_tournament_data["tournament_id"], players
+        )
+
+        # Round 1, 2, 3: Same as above test
+        round1_pairings = pair_round_1(registrations, base_tournament_data["component"])
+        for match in round1_pairings:
+            match.player1_wins = 2
+            match.player2_wins = 0
+
+        config = {"standings_tiebreakers": ["omw", "gw", "ogw"]}
+        round2_pairings = pair_round(
+            registrations,
+            round1_pairings,
+            base_tournament_data["component"],
+            config,
+            round_number=2,
+        )
+        for match in round2_pairings:
+            match.player1_wins = 2
+            match.player2_wins = 0
+
+        all_matches = round1_pairings + round2_pairings
+        round3_pairings = pair_round(
+            registrations,
+            all_matches,
+            base_tournament_data["component"],
+            config,
+            round_number=3,
+        )
+        for match in round3_pairings:
+            match.player1_wins = 2
+            match.player2_wins = 0
+
+        all_matches = round1_pairings + round2_pairings + round3_pairings
+
+        # Round 4: With override, this should succeed as rematches
+        round4_pairings = pair_round(
+            registrations,
+            all_matches,
+            base_tournament_data["component"],
+            config,
+            round_number=4,
+            allow_rematches_override=True,  # ← TO override
+        )
+
+        # Verify pairings were created
+        assert len(round4_pairings) == 2
+        assert all(m.player2_id is not None for m in round4_pairings)
+
+        # Verify these are indeed rematches (each pair played before)
+        rematch_count = 0
+        for round4_match in round4_pairings:
+            for previous_match in all_matches:
+                if (
+                    round4_match.player1_id == previous_match.player1_id
+                    and round4_match.player2_id == previous_match.player2_id
+                ) or (
+                    round4_match.player1_id == previous_match.player2_id
+                    and round4_match.player2_id == previous_match.player1_id
+                ):
+                    rematch_count += 1
+                    break
+
+        assert rematch_count == 2, "All round 4 pairings should be rematches"
+
+    def test_rematch_config_allows_pairing(self, base_tournament_data):
+        """
+        SCENARIO: Tournament config has allow_rematches=True
+        EXPECTED: Pairing succeeds without override parameter
+        """
+        # Create 4 players
+        players = create_test_players(4)
+        registrations = create_registrations(
+            base_tournament_data["tournament_id"], players
+        )
+
+        # Rounds 1-3 (same setup)
+        round1_pairings = pair_round_1(registrations, base_tournament_data["component"])
+        for match in round1_pairings:
+            match.player1_wins = 2
+            match.player2_wins = 0
+
+        config = {
+            "standings_tiebreakers": ["omw", "gw", "ogw"],
+            "allow_rematches": True,  # ← Tournament-level config
+        }
+        round2_pairings = pair_round(
+            registrations,
+            round1_pairings,
+            base_tournament_data["component"],
+            config,
+            round_number=2,
+        )
+        for match in round2_pairings:
+            match.player1_wins = 2
+            match.player2_wins = 0
+
+        all_matches = round1_pairings + round2_pairings
+        round3_pairings = pair_round(
+            registrations,
+            all_matches,
+            base_tournament_data["component"],
+            config,
+            round_number=3,
+        )
+        for match in round3_pairings:
+            match.player1_wins = 2
+            match.player2_wins = 0
+
+        all_matches = round1_pairings + round2_pairings + round3_pairings
+
+        # Round 4: Should succeed because of config
+        round4_pairings = pair_round(
+            registrations,
+            all_matches,
+            base_tournament_data["component"],
+            config,  # allow_rematches is in config
+            round_number=4,
+        )
+
+        assert len(round4_pairings) == 2
+        assert all(m.player2_id is not None for m in round4_pairings)
+
+
+# =============================================================================
+# Test Case 6: Tiebreaker Calculations
 # =============================================================================
 
 
