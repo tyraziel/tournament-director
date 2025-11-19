@@ -195,7 +195,7 @@ async def list_tournaments_by_status(
     - **limit**: Maximum number of results (default: 20, max: 100)
     - **offset**: Number of results to skip (default: 0)
     """
-    tournaments = await data_layer.tournaments.find_by_status(status)
+    tournaments = await data_layer.tournaments.list_by_status(status)
     start = pagination["offset"]
     end = start + pagination["limit"]
     return tournaments[start:end]
@@ -214,7 +214,7 @@ async def list_tournaments_by_venue(
     - **limit**: Maximum number of results (default: 20, max: 100)
     - **offset**: Number of results to skip (default: 0)
     """
-    tournaments = await data_layer.tournaments.find_by_venue(venue_id)
+    tournaments = await data_layer.tournaments.list_by_venue(venue_id)
     start = pagination["offset"]
     end = start + pagination["limit"]
     return tournaments[start:end]
@@ -233,7 +233,7 @@ async def list_tournaments_by_format(
     - **limit**: Maximum number of results (default: 20, max: 100)
     - **offset**: Number of results to skip (default: 0)
     """
-    tournaments = await data_layer.tournaments.find_by_format(format_id)
+    tournaments = await data_layer.tournaments.list_by_format(format_id)
     start = pagination["offset"]
     end = start + pagination["limit"]
     return tournaments[start:end]
@@ -268,7 +268,7 @@ async def start_tournament_endpoint(
         tournament = await data_layer.tournaments.get_by_id(tournament_id)
 
         # Get registrations
-        registrations = await data_layer.registrations.find_by_tournament(tournament_id)
+        registrations = await data_layer.registrations.list_by_tournament(tournament_id)
 
         # Create Swiss component for the tournament
         component = Component(
@@ -276,8 +276,9 @@ async def start_tournament_endpoint(
             tournament_id=tournament_id,
             name="Swiss Component",
             type="swiss",
+            sequence_order=1,  # First component in tournament
             status=ComponentStatus.PENDING,
-            max_rounds=None,  # Will be determined by format or manual setting
+            config={"max_rounds": None},  # Will be determined by format or manual setting
         )
 
         # Start tournament (modifies tournament and component in-place, returns Round 1)
@@ -330,7 +331,7 @@ async def complete_tournament_endpoint(
         tournament = await data_layer.tournaments.get_by_id(tournament_id)
 
         # Get components for this tournament
-        components = await data_layer.components.find_by_tournament(tournament_id)
+        components = await data_layer.components.list_by_tournament(tournament_id)
 
         if not components:
             raise HTTPException(
