@@ -37,21 +37,26 @@ data_layer = DatabaseDataLayer(db_url) # For production (future)
 ### ✅ Completed
 - Complete Pydantic data models with validation
 - Abstract data layer interface design
-- Mock backend (in-memory) implementation
-- Local JSON backend with file persistence
+- **Three-backend architecture:**
+  - Mock backend (in-memory) for testing
+  - Local JSON backend for file persistence
+  - **Database backend (SQLAlchemy + SQLite/PostgreSQL/MySQL/MariaDB)** ✨ NEW
+- Database migrations with Alembic (cross-database compatible)
+- 46/46 database integration tests passing (SQLite + PostgreSQL)
 - Comprehensive seed data generation
 - Foreign key validation and data integrity
-- Test coverage for all components
+- Swiss pairing algorithms with OMW%/GW%/OGW% tiebreakers
+- Tournament state machine (DRAFT → IN_PROGRESS → COMPLETED)
+- Impossible pairing detection and validation
 
-### 🔄 In Progress  
-- FastAPI server with backend abstraction
+### 🔄 In Progress
+- FastAPI server with database backend integration
 - REST endpoints for all CRUD operations
 
 ### 📋 Planned
-- Database backend (SQLAlchemy + PostgreSQL/SQLite)
 - Textual TUI implementation
 - Discord bot integration
-- Swiss pairing algorithms and tiebreakers
+- Elimination bracket pairing (single/double)
 
 ## Development Setup
 

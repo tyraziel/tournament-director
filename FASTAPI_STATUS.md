@@ -34,6 +34,7 @@
 - ✅ API update models (PlayerUpdate, VenueUpdate, FormatUpdate, TournamentUpdate)
 - ✅ Response models with validation
 - ✅ RegistrationControl nested model
+- ✅ **Root**: API information endpoint
 
 ---
 
@@ -52,6 +53,9 @@
 ---
 
 ## 📋 Not Started (Planned for Future PRs)
+
+### Tournament Management API
+- [ ] Tournament state validation
 
 ### Registration API
 - [ ] Player registration endpoints
@@ -257,7 +261,7 @@ GET    /auth/api-keys                    - List user's API keys
 GET    /auth/api-keys/{id}               - Get API key details
 DELETE /auth/api-keys/{id}               - Revoke API key
 
-# Tournament Advanced Features (Not Yet Implemented)
+# Tournaments
 GET    /tournaments/{id}/standings       - Get standings
 
 # Registrations

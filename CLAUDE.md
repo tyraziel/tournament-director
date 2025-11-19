@@ -206,6 +206,14 @@ Each entity has its own repository with full CRUD operations:
 - Abstract data layer interface design
 - Mock backend (in-memory) implementation
 - Local JSON backend with file persistence
+- **Database backend (SQLAlchemy + PostgreSQL/SQLite/MySQL/MariaDB)** ✨ NEW
+  - Cross-database UUID and JSON types
+  - 8 repository implementations (Player, Venue, Format, Tournament, Registration, Component, Round, Match)
+  - DatabaseDataLayer with session management
+  - Alembic migrations with cross-database support
+  - 23 comprehensive integration tests
+  - 46/46 tests passing (SQLite + PostgreSQL)
+  - MySQL/MariaDB code verified (pending runtime test)
 - Comprehensive seed data generation
 - Foreign key validation and data integrity
 - Test coverage for all components
@@ -228,19 +236,23 @@ Each entity has its own repository with full CRUD operations:
 ### 🔄 In Progress
 - FastAPI server with backend abstraction
 - REST endpoints for all CRUD operations
+- Database backend integration with FastAPI
 
 ### 📋 Planned
-- Database backend (SQLAlchemy + PostgreSQL/SQLite)
 - Textual TUI implementation
 - Discord bot integration
 - Elimination bracket pairing (single/double elimination)
+- API Key repository (optional - for API authentication)
 
 ### Next Steps
-1. Complete FastAPI server implementation
-2. Add authentication and authorization
-3. Build TUI framework consuming API
-4. Add Discord bot integration
-5. Production deployment setup
+1. **Integrate database backend with FastAPI** - Connect DatabaseDataLayer to existing endpoints
+2. **Add authentication and authorization** - JWT tokens or session-based auth
+3. **Production deployment** - Deploy with PostgreSQL database
+4. **Build TUI framework** - Textual interface consuming API
+5. **Add Discord bot integration** - Tournament management via Discord
+6. **Elimination bracket pairing** - Single/double elimination support
+
+See `DATABASE_TODO.md` for database-specific next steps.
 
 ---
 
