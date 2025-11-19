@@ -351,7 +351,7 @@ def pair_round(
         if allow_rematches:
             # TO has allowed rematches - pair remaining players
             logger.warning(
-                f"Round {round_number}: Creating {len(unpaired_players)//2} REMATCH pairings "
+                f"Round {round_number}: Creating {len(unpaired_players) // 2} REMATCH pairings "
                 f"(allow_rematches enabled)"
             )
             rematch_pairings = _create_rematch_pairings(

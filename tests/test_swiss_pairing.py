@@ -694,9 +694,7 @@ class TestImpossiblePairing:
         """
         # Create 4 players
         players = create_test_players(4)
-        registrations = create_registrations(
-            base_tournament_data["tournament_id"], players
-        )
+        registrations = create_registrations(base_tournament_data["tournament_id"], players)
 
         # Round 1: P1 vs P2, P3 vs P4
         round1_pairings = pair_round_1(registrations, base_tournament_data["component"])
@@ -769,9 +767,7 @@ class TestImpossiblePairing:
         """
         # Create 4 players
         players = create_test_players(4)
-        registrations = create_registrations(
-            base_tournament_data["tournament_id"], players
-        )
+        registrations = create_registrations(base_tournament_data["tournament_id"], players)
 
         # Round 1, 2, 3: Same as above test
         round1_pairings = pair_round_1(registrations, base_tournament_data["component"])
@@ -842,9 +838,7 @@ class TestImpossiblePairing:
         """
         # Create 4 players
         players = create_test_players(4)
-        registrations = create_registrations(
-            base_tournament_data["tournament_id"], players
-        )
+        registrations = create_registrations(base_tournament_data["tournament_id"], players)
 
         # Rounds 1-3 (same setup)
         round1_pairings = pair_round_1(registrations, base_tournament_data["component"])
