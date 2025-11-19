@@ -7,12 +7,13 @@ final standings sort order.
 AIA EAI Hin R Claude Code [Sonnet 4.5] v1.0
 """
 
-import pytest
 from uuid import uuid4
 
-from src.models.tournament import TournamentRegistration
-from src.models.match import Match
+import pytest
+
 from src.models.base import PlayerStatus
+from src.models.match import Match
+from src.models.tournament import TournamentRegistration
 from src.swiss.standings import calculate_standings
 
 

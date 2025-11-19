@@ -11,22 +11,19 @@ import logging
 import logging.handlers
 import sys
 from pathlib import Path
-from typing import Optional
-
 
 # Default log format with timestamp, level, module, and message
 DEFAULT_FORMAT = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 
 # Detailed format for file logging (includes function name and line number)
 DETAILED_FORMAT = (
-    "%(asctime)s - %(name)s - %(levelname)s - "
-    "%(filename)s:%(lineno)d - %(funcName)s - %(message)s"
+    "%(asctime)s - %(name)s - %(levelname)s - %(filename)s:%(lineno)d - %(funcName)s - %(message)s"
 )
 
 
 def setup_logging(
     level: str = "INFO",
-    log_file: Optional[Path] = None,
+    log_file: Path | None = None,
     console: bool = True,
     detailed: bool = False,
 ) -> None:
@@ -56,8 +53,7 @@ def setup_logging(
 
     # Select format
     formatter = logging.Formatter(
-        DETAILED_FORMAT if detailed else DEFAULT_FORMAT,
-        datefmt="%Y-%m-%d %H:%M:%S"
+        DETAILED_FORMAT if detailed else DEFAULT_FORMAT, datefmt="%Y-%m-%d %H:%M:%S"
     )
 
     # Console handler (stdout)
@@ -133,7 +129,7 @@ def log_pairing_decision(
     logger: logging.Logger,
     round_number: int,
     player1_id: str,
-    player2_id: Optional[str],
+    player2_id: str | None,
     reason: str,
     **context,
 ) -> None:

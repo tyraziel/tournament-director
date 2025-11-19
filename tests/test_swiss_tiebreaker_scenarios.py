@@ -7,20 +7,19 @@ different final standings for the same tournament results.
 AIA EAI Hin R Claude Code [Sonnet 4.5] v1.0
 """
 
-import pytest
-from uuid import UUID, uuid4
-from datetime import datetime, timezone
+from uuid import uuid4
 
-from src.models.player import Player
-from src.models.tournament import Tournament, TournamentRegistration
-from src.models.match import Match, Component
+import pytest
+
 from src.models.base import (
+    ComponentStatus,
+    ComponentType,
     PlayerStatus,
     TournamentStatus,
-    ComponentType,
-    ComponentStatus,
 )
-
+from src.models.match import Component, Match
+from src.models.player import Player
+from src.models.tournament import Tournament, TournamentRegistration
 
 # Test Scenario: "The Tiebreaker Triangle"
 # Three players finish 2-1 (6 points) with different tiebreaker profiles
@@ -285,9 +284,7 @@ def test_tiebreaker_omw_primary(tiebreaker_triangle_tournament):
     config = data["component"].config.copy()
     config["standings_tiebreakers"] = ["omw", "gw", "ogw", "random"]
 
-    standings = calculate_standings(
-        list(data["registrations"].values()), data["matches"], config
-    )
+    standings = calculate_standings(list(data["registrations"].values()), data["matches"], config)
 
     # Extract 2-1 players (ranks 1-3)
     top_three = standings[:3]
@@ -318,9 +315,7 @@ def test_tiebreaker_gw_primary(tiebreaker_triangle_tournament):
     config = data["component"].config.copy()
     config["standings_tiebreakers"] = ["gw", "omw", "ogw", "random"]
 
-    standings = calculate_standings(
-        list(data["registrations"].values()), data["matches"], config
-    )
+    standings = calculate_standings(list(data["registrations"].values()), data["matches"], config)
 
     top_three = standings[:3]
 
@@ -354,9 +349,7 @@ def test_tiebreaker_match_wins_primary(tiebreaker_triangle_tournament):
     config = data["component"].config.copy()
     config["standings_tiebreakers"] = ["match_wins", "game_wins", "random"]
 
-    standings = calculate_standings(
-        list(data["registrations"].values()), data["matches"], config
-    )
+    standings = calculate_standings(list(data["registrations"].values()), data["matches"], config)
 
     top_three = standings[:3]
 
@@ -626,8 +619,6 @@ def test_pairing_vs_standings_tiebreakers():
     - Pairing for round 2 should be random among 1-0 players
     - Final standings should use OMW%/GW%/OGW% for accurate rankings
     """
-    from src.swiss.pairing import pair_subsequent_round
-    from src.swiss.standings import calculate_standings
 
     # Create 4-player tournament
     # Round 1: A beats B, C beats D (random)
@@ -640,7 +631,6 @@ def test_pairing_vs_standings_tiebreakers():
     # Test that standings respect standings_tiebreakers (omw/gw/ogw)
 
     # This test validates configuration independence
-    pass
 
 
 # Test Scenario: Zero Opponents (Bye-Only Player)
@@ -749,11 +739,9 @@ def test_dropped_player_tiebreakers():
 
     Dropped players count for past matches, not future ones.
     """
-    from src.swiss.standings import calculate_standings
 
     # Implementation will need to handle PlayerStatus.DROPPED
     # Dropped players count in opponent calculations for completed matches
-    pass
 
 
 # Documentation Test: Tiebreaker Order Matters

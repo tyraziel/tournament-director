@@ -7,15 +7,15 @@ standings-based bracket pairing and no-rematch constraints.
 AIA EAI Hin R Claude Code [Sonnet 4.5] v1.0
 """
 
-import random
 import logging
-from uuid import UUID, uuid4
+import random
 from collections import defaultdict
+from uuid import UUID, uuid4
 
+from src.models.match import Component, Match
 from src.models.tournament import TournamentRegistration
-from src.models.match import Match, Component
-from src.swiss.standings import calculate_standings
 from src.swiss.models import StandingsEntry
+from src.swiss.standings import calculate_standings
 
 logger = logging.getLogger(__name__)
 
@@ -50,7 +50,8 @@ def pair_round_1(
 
     # Filter to only active players
     active_players = [
-        reg for reg in registrations
+        reg
+        for reg in registrations
         if reg.status.value == "active"  # PlayerStatus.ACTIVE
     ]
 
@@ -62,9 +63,7 @@ def pair_round_1(
 
     # Minimum tournament size: 2 players
     if len(active_players) < 2:
-        logger.error(
-            f"Insufficient players: {len(active_players)} active, minimum 2 required"
-        )
+        logger.error(f"Insufficient players: {len(active_players)} active, minimum 2 required")
         raise ValueError(
             f"Swiss tournament requires at least 2 players. "
             f"Currently have {len(active_players)} active player(s)."
@@ -84,7 +83,7 @@ def pair_round_1(
         raise ValueError(f"Invalid pairing mode: {mode}")
 
     # Create matches
-    matches = []
+    matches: list[Match] = []
     round_id = uuid4()  # Would come from Round in real implementation
 
     # Pair players sequentially
@@ -109,8 +108,7 @@ def pair_round_1(
     if len(players) % 2 == 1:
         bye_player = players[-1]  # Last player gets bye
         logger.info(
-            f"Round 1: Odd player count, assigning bye to "
-            f"player=seq#{bye_player.sequence_id}"
+            f"Round 1: Odd player count, assigning bye to player=seq#{bye_player.sequence_id}"
         )
         bye_match = Match(
             id=uuid4(),
@@ -200,6 +198,7 @@ def pair_round(
     component: Component,
     config: dict,
     round_number: int,
+    allow_rematches_override: bool | None = None,
 ) -> list[Match]:
     """
     Pair players for rounds 2+ using standings-based bracket pairing.
@@ -215,14 +214,18 @@ def pair_round(
         registrations: List of active tournament registrations
         matches: List of all matches from previous rounds
         component: Tournament component configuration
-        config: Tournament configuration (for tiebreakers)
+        config: Tournament configuration (for tiebreakers and rematch settings)
         round_number: The round number to pair
+        allow_rematches_override: If True, allows rematches when pairing is impossible.
+            If None, uses config["allow_rematches"] (default: False).
+            This is a per-round override for emergency situations.
 
     Returns:
         List of Match objects for this round
 
     Raises:
         ValueError: If pairing is impossible (all players have played each other)
+            and rematches are not allowed
     """
     logger.info(
         f"Starting Round {round_number} pairing: tournament={component.tournament_id}, "
@@ -230,10 +233,7 @@ def pair_round(
     )
 
     # Filter to only active players
-    active_players = [
-        reg for reg in registrations
-        if reg.status.value == "active"
-    ]
+    active_players = [reg for reg in registrations if reg.status.value == "active"]
 
     dropped_count = len(registrations) - len(active_players)
     if dropped_count > 0:
@@ -286,20 +286,22 @@ def pair_round(
             f"rank={bye_player.rank}, points={bye_player.match_points}"
         )
         # Remove bye player from pairing pool
-        pairings_standings = [s for s in standings if s.player.player_id != bye_player.player.player_id]
+        pairings_standings = [
+            s for s in standings if s.player.player_id != bye_player.player.player_id
+        ]
 
     # Group players into brackets by match points
     brackets = _group_into_brackets(pairings_standings)
     logger.info(f"Round {round_number}: Grouped players into {len(brackets)} bracket(s)")
     logger.debug(
         f"Round {round_number}: Bracket breakdown: "
-        f"{dict((points, len(players)) for points, players in brackets.items())}"
+        f"{ {points: len(players) for points, players in brackets.items()} }"
     )
 
     # Pair players within brackets
-    new_matches = []
+    new_matches: list[Match] = []
     round_id = uuid4()
-    unpaired_players = []
+    unpaired_players: list[StandingsEntry] = []
 
     for match_points, bracket_entries in sorted(brackets.items(), reverse=True):
         # Add any pair-downs from higher brackets
@@ -338,12 +340,36 @@ def pair_round(
             f"Round {round_number}: {len(unpaired_players)} unpaired players after all brackets, "
             f"checking if pairing is impossible"
         )
-        # This means we couldn't pair some players - check if it's truly impossible
-        _raise_impossible_pairing_error(
-            unpaired_players,
-            pairing_history,
-            round_number,
+
+        # Determine if rematches are allowed
+        allow_rematches = (
+            allow_rematches_override
+            if allow_rematches_override is not None
+            else config.get("allow_rematches", False)
         )
+
+        if allow_rematches:
+            # TO has allowed rematches - pair remaining players
+            logger.warning(
+                f"Round {round_number}: Creating {len(unpaired_players) // 2} REMATCH pairings "
+                f"(allow_rematches enabled)"
+            )
+            rematch_pairings = _create_rematch_pairings(
+                unpaired_players,
+                component,
+                round_id,
+                round_number,
+                len(new_matches),
+            )
+            new_matches.extend(rematch_pairings)
+            unpaired_players = []  # All paired now
+        else:
+            # Rematches not allowed - check if truly impossible and raise error
+            _raise_impossible_pairing_error(
+                unpaired_players,
+                pairing_history,
+                round_number,
+            )
 
     # Add bye match if we have a bye player
     if bye_player is not None:
@@ -361,15 +387,78 @@ def pair_round(
             table_number=None,
         )
         new_matches.append(bye_match)
-        logger.debug(f"Round {round_number}: Bye match added for player=seq#{bye_player.player.sequence_id}")
+        logger.debug(
+            f"Round {round_number}: Bye match added for player=seq#{bye_player.player.sequence_id}"
+        )
 
+    regular_count = len([m for m in new_matches if m.player2_id is not None])
+    bye_count = len([m for m in new_matches if m.player2_id is None])
     logger.info(
         f"Round {round_number} pairing complete: {len(new_matches)} matches created "
-        f"({len([m for m in new_matches if m.player2_id is not None])} regular, "
-        f"{len([m for m in new_matches if m.player2_id is None])} bye)"
+        f"({regular_count} regular, {bye_count} bye)"
     )
 
     return new_matches
+
+
+def _create_rematch_pairings(
+    unpaired_players: list[StandingsEntry],
+    component: Component,
+    round_id: UUID,
+    round_number: int,
+    starting_table: int,
+) -> list[Match]:
+    """
+    Create rematch pairings for players who have all played each other.
+
+    This is used when the TO allows rematches (via allow_rematches config or override).
+    Pairs players in standings order - assumes they're already sorted by standings.
+
+    Args:
+        unpaired_players: Players who couldn't be paired without rematches
+        component: Tournament component
+        round_id: UUID for the current round
+        round_number: Current round number
+        starting_table: Starting table number for these matches
+
+    Returns:
+        List of Match objects (rematches)
+    """
+    matches = []
+    table_number = starting_table
+
+    for i in range(0, len(unpaired_players) - 1, 2):
+        player1 = unpaired_players[i]
+        player2 = unpaired_players[i + 1]
+
+        logger.warning(
+            f"Round {round_number}: REMATCH created - "
+            f"Player seq#{player1.player.sequence_id} vs seq#{player2.player.sequence_id} "
+            f"(table {table_number})"
+        )
+
+        match = Match(
+            id=uuid4(),
+            tournament_id=component.tournament_id,
+            component_id=component.id,
+            round_id=round_id,
+            round_number=round_number,
+            table_number=table_number,
+            player1_id=player1.player.player_id,
+            player2_id=player2.player.player_id,
+        )
+        matches.append(match)
+        table_number += 1
+
+    # Handle odd player (shouldn't happen, but defensive coding)
+    if len(unpaired_players) % 2 == 1:
+        last_player = unpaired_players[-1]
+        logger.error(
+            f"Round {round_number}: Odd number of unpaired players after rematches! "
+            f"Player seq#{last_player.player.sequence_id} still unpaired"
+        )
+
+    return matches
 
 
 def _raise_impossible_pairing_error(
@@ -395,10 +484,8 @@ def _raise_impossible_pairing_error(
     # Check if these players have all played each other
     all_played_each_other = True
     for i, player1 in enumerate(unpaired_players):
-        for player2 in unpaired_players[i + 1:]:
-            if player2.player.player_id not in pairing_history.get(
-                player1.player.player_id, set()
-            ):
+        for player2 in unpaired_players[i + 1 :]:
+            if player2.player.player_id not in pairing_history.get(player1.player.player_id, set()):
                 all_played_each_other = False
                 break
         if not all_played_each_other:
@@ -455,7 +542,7 @@ def _select_bye_player(
         StandingsEntry for the player who should receive the bye
     """
     # Count previous byes for each player
-    bye_counts = defaultdict(int)
+    bye_counts: defaultdict[UUID, int] = defaultdict(int)
     for match in matches:
         if match.player2_id is None:  # Bye match
             bye_counts[match.player1_id] += 1
@@ -467,8 +554,7 @@ def _select_bye_player(
 
     # Get players with minimum byes (reverse order = lowest ranked first)
     candidates = [
-        s for s in reversed(standings)
-        if bye_counts.get(s.player.player_id, 0) == min_byes
+        s for s in reversed(standings) if bye_counts.get(s.player.player_id, 0) == min_byes
     ]
 
     # Return lowest-ranked candidate
@@ -548,7 +634,7 @@ def _pair_bracket(
     Returns:
         Tuple of (matches created, unpaired players needing pair-down)
     """
-    matches = []
+    matches: list[Match] = []
     available = list(players)  # Copy to modify
 
     while len(available) >= 2:
@@ -559,9 +645,7 @@ def _pair_bracket(
         opponent_idx = None
         for idx, player2 in enumerate(available):
             # Check if they've already played
-            if player2.player.player_id not in pairing_history.get(
-                player1.player.player_id, set()
-            ):
+            if player2.player.player_id not in pairing_history.get(player1.player.player_id, set()):
                 opponent_idx = idx
                 break
 

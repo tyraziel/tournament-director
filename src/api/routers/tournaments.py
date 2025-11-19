@@ -4,21 +4,20 @@ Tournament CRUD API endpoints.
 AIA EAI Hin R Claude Code [Sonnet 4.5] v1.0
 """
 
-from typing import Any
 from uuid import UUID, uuid4
 
 from fastapi import APIRouter, HTTPException, status
 
 from src.data.exceptions import DuplicateError, NotFoundError
-from src.models.base import TournamentStatus, TournamentVisibility, ComponentStatus
+from src.lifecycle import end_tournament, start_tournament
+from src.models.base import ComponentStatus, TournamentStatus
+from src.models.match import Component
 from src.models.tournament import (
     RegistrationControl,
     Tournament,
     TournamentCreate,
     TournamentUpdate,
 )
-from src.models.match import Component
-from src.lifecycle import start_tournament, end_tournament
 
 from ..dependencies import DataLayerDep, PaginationDep
 
@@ -68,10 +67,9 @@ async def create_tournament(
     )
 
     try:
-        created_tournament = await data_layer.tournaments.create(tournament)
-        return created_tournament
+        return await data_layer.tournaments.create(tournament)
     except DuplicateError as e:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e)) from None
 
 
 @router.get("/", response_model=list[Tournament])
@@ -92,22 +90,19 @@ async def list_tournaments(
 
 
 @router.get("/{tournament_id}", response_model=Tournament)
-async def get_tournament(
-    tournament_id: UUID, data_layer: DataLayerDep
-) -> Tournament:
+async def get_tournament(tournament_id: UUID, data_layer: DataLayerDep) -> Tournament:
     """
     Get tournament by ID.
 
     - **tournament_id**: UUID of tournament to retrieve
     """
     try:
-        tournament = await data_layer.tournaments.get_by_id(tournament_id)
-        return tournament
+        return await data_layer.tournaments.get_by_id(tournament_id)
     except NotFoundError:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Tournament {tournament_id} not found",
-        )
+        ) from None
 
 
 @router.put("/{tournament_id}", response_model=Tournament)
@@ -155,19 +150,16 @@ async def update_tournament(
         for field, value in update_data.items():
             setattr(tournament, field, value)
 
-        updated_tournament = await data_layer.tournaments.update(tournament)
-        return updated_tournament
+        return await data_layer.tournaments.update(tournament)
     except NotFoundError:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Tournament {tournament_id} not found",
-        )
+        ) from None
 
 
 @router.delete("/{tournament_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_tournament(
-    tournament_id: UUID, data_layer: DataLayerDep
-) -> None:
+async def delete_tournament(tournament_id: UUID, data_layer: DataLayerDep) -> None:
     """
     Delete tournament by ID.
 
@@ -179,7 +171,7 @@ async def delete_tournament(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Tournament {tournament_id} not found",
-        )
+        ) from None
 
 
 @router.get("/status/{status}", response_model=list[Tournament])
@@ -240,9 +232,7 @@ async def list_tournaments_by_format(
 
 
 @router.post("/{tournament_id}/start", response_model=Tournament)
-async def start_tournament_endpoint(
-    tournament_id: UUID, data_layer: DataLayerDep
-) -> Tournament:
+async def start_tournament_endpoint(tournament_id: UUID, data_layer: DataLayerDep) -> Tournament:
     """
     Start a tournament: transition from DRAFT/REGISTRATION_CLOSED → IN_PROGRESS.
 
@@ -295,18 +285,16 @@ async def start_tournament_endpoint(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Tournament {tournament_id} not found",
-        )
+        ) from None
     except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e),
-        )
+        ) from None
 
 
 @router.post("/{tournament_id}/complete", response_model=Tournament)
-async def complete_tournament_endpoint(
-    tournament_id: UUID, data_layer: DataLayerDep
-) -> Tournament:
+async def complete_tournament_endpoint(tournament_id: UUID, data_layer: DataLayerDep) -> Tournament:
     """
     Complete a tournament: transition from IN_PROGRESS → COMPLETED.
 
@@ -354,9 +342,9 @@ async def complete_tournament_endpoint(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Tournament {tournament_id} not found",
-        )
+        ) from None
     except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e),
-        )
+        ) from None

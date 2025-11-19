@@ -3,17 +3,16 @@
 AIA EAI Hin R Claude Code [Sonnet 4.5] v1.0
 """
 
-from typing import List, Optional
 from uuid import UUID
 
-from sqlalchemy import select, func
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.data.database.models import TournamentRegistrationModel
 from src.data.exceptions import DuplicateError, NotFoundError
 from src.data.interface import RegistrationRepository
-from src.data.database.models import TournamentRegistrationModel
-from src.models.tournament import TournamentRegistration
 from src.models.base import PlayerStatus
+from src.models.tournament import TournamentRegistration
 
 
 class DatabaseRegistrationRepository(RegistrationRepository):
@@ -46,14 +45,14 @@ class DatabaseRegistrationRepository(RegistrationRepository):
         # Check for duplicate player in tournament
         stmt = select(TournamentRegistrationModel).where(
             TournamentRegistrationModel.tournament_id == registration.tournament_id,
-            TournamentRegistrationModel.player_id == registration.player_id
+            TournamentRegistrationModel.player_id == registration.player_id,
         )
         result = await self.session.execute(stmt)
         if result.scalar_one_or_none():
             raise DuplicateError(
                 "TournamentRegistration",
                 "player_id",
-                f"{registration.player_id} in tournament {registration.tournament_id}"
+                f"{registration.player_id} in tournament {registration.tournament_id}",
             )
 
         db_reg = TournamentRegistrationModel(
@@ -82,11 +81,11 @@ class DatabaseRegistrationRepository(RegistrationRepository):
 
     async def get_by_tournament_and_player(
         self, tournament_id: UUID, player_id: UUID
-    ) -> Optional[TournamentRegistration]:
+    ) -> TournamentRegistration | None:
         """Get registration by tournament and player. Returns None if not found."""
         stmt = select(TournamentRegistrationModel).where(
             TournamentRegistrationModel.tournament_id == tournament_id,
-            TournamentRegistrationModel.player_id == player_id
+            TournamentRegistrationModel.player_id == player_id,
         )
         result = await self.session.execute(stmt)
         db_reg = result.scalar_one_or_none()
@@ -98,11 +97,11 @@ class DatabaseRegistrationRepository(RegistrationRepository):
 
     async def get_by_tournament_and_sequence_id(
         self, tournament_id: UUID, sequence_id: int
-    ) -> Optional[TournamentRegistration]:
+    ) -> TournamentRegistration | None:
         """Get registration by tournament and sequence ID. Returns None if not found."""
         stmt = select(TournamentRegistrationModel).where(
             TournamentRegistrationModel.tournament_id == tournament_id,
-            TournamentRegistrationModel.sequence_id == sequence_id
+            TournamentRegistrationModel.sequence_id == sequence_id,
         )
         result = await self.session.execute(stmt)
         db_reg = result.scalar_one_or_none()
@@ -113,8 +112,8 @@ class DatabaseRegistrationRepository(RegistrationRepository):
         return self._to_pydantic(db_reg)
 
     async def list_by_tournament(
-        self, tournament_id: UUID, status: Optional[str] = None
-    ) -> List[TournamentRegistration]:
+        self, tournament_id: UUID, status: str | None = None
+    ) -> list[TournamentRegistration]:
         """List registrations for a tournament, optionally filtered by status."""
         stmt = select(TournamentRegistrationModel).where(
             TournamentRegistrationModel.tournament_id == tournament_id
@@ -128,8 +127,8 @@ class DatabaseRegistrationRepository(RegistrationRepository):
         return [self._to_pydantic(db_reg) for db_reg in db_regs]
 
     async def list_by_player(
-        self, player_id: UUID, status: Optional[str] = None
-    ) -> List[TournamentRegistration]:
+        self, player_id: UUID, status: str | None = None
+    ) -> list[TournamentRegistration]:
         """List registrations for a player, optionally filtered by status."""
         stmt = select(TournamentRegistrationModel).where(
             TournamentRegistrationModel.player_id == player_id

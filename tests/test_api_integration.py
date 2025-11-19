@@ -6,22 +6,19 @@ Tests complete CRUD workflows using httpx TestClient.
 AIA EAI Hin R Claude Code [Sonnet 4.5] v1.0
 """
 
-import pytest
-import pytest_asyncio
-from httpx import AsyncClient, ASGITransport
 from uuid import uuid4
 
+import pytest
+import pytest_asyncio
+from httpx import ASGITransport, AsyncClient
+
 from src.api.main import app
-from src.models.base import GameSystem, BaseFormat
 
 
 @pytest_asyncio.fixture
 async def client():
     """Create async test client."""
-    async with AsyncClient(
-        transport=ASGITransport(app=app),
-        base_url="http://test"
-    ) as ac:
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
         yield ac
 
 
@@ -74,7 +71,7 @@ class TestPlayerEndpoints:
         player_data = {
             "name": "Alice Johnson",
             "discord_id": "alice#1234",
-            "email": "alice@example.com"
+            "email": "alice@example.com",
         }
 
         response = await client.post("/players/", json=player_data)
@@ -175,13 +172,12 @@ class TestPlayerEndpoints:
         # Create a player with Discord ID
         discord_id = "user#9999"
         create_response = await client.post(
-            "/players/",
-            json={"name": "Discord User", "discord_id": discord_id}
+            "/players/", json={"name": "Discord User", "discord_id": discord_id}
         )
         assert create_response.status_code == 201
 
         # Get by Discord ID (URL encode the # symbol)
-        encoded_discord_id = urllib.parse.quote(discord_id, safe='')
+        encoded_discord_id = urllib.parse.quote(discord_id, safe="")
         response = await client.get(f"/players/discord/{encoded_discord_id}")
         assert response.status_code == 200
 
@@ -214,7 +210,7 @@ class TestVenueEndpoints:
         venue_data = {
             "name": "Kitchen Table",
             "address": "123 Main St",
-            "description": "Casual gaming venue"
+            "description": "Casual gaming venue",
         }
 
         response = await client.post("/venues/", json=venue_data)
@@ -248,10 +244,7 @@ class TestVenueEndpoints:
         create_response = await client.post("/venues/", json={"name": "Old Name"})
         venue_id = create_response.json()["id"]
 
-        response = await client.put(
-            f"/venues/{venue_id}",
-            json={"name": "New Name"}
-        )
+        response = await client.put(f"/venues/{venue_id}", json={"name": "New Name"})
         assert response.status_code == 200
         assert response.json()["name"] == "New Name"
 
@@ -277,7 +270,7 @@ class TestFormatEndpoints:
             "base_format": "constructed",
             "card_pool": "Pauper",
             "match_structure": "BO3",
-            "description": "Commons only format"
+            "description": "Commons only format",
         }
 
         response = await client.post("/formats/", json=format_data)
@@ -298,20 +291,26 @@ class TestFormatEndpoints:
     async def test_list_formats_by_game_system(self, client: AsyncClient):
         """Test filtering formats by game system."""
         # Create MTG format
-        await client.post("/formats/", json={
-            "name": "Standard",
-            "game_system": "magic_the_gathering",
-            "base_format": "constructed",
-            "card_pool": "Standard"
-        })
+        await client.post(
+            "/formats/",
+            json={
+                "name": "Standard",
+                "game_system": "magic_the_gathering",
+                "base_format": "constructed",
+                "card_pool": "Standard",
+            },
+        )
 
         # Create Pokemon format
-        await client.post("/formats/", json={
-            "name": "Standard",
-            "game_system": "pokemon",
-            "base_format": "constructed",
-            "card_pool": "Standard"
-        })
+        await client.post(
+            "/formats/",
+            json={
+                "name": "Standard",
+                "game_system": "pokemon",
+                "base_format": "constructed",
+                "card_pool": "Standard",
+            },
+        )
 
         # Get only MTG formats
         response = await client.get("/formats/game/magic_the_gathering")
@@ -323,12 +322,15 @@ class TestFormatEndpoints:
     @pytest.mark.asyncio
     async def test_get_format_by_id(self, client: AsyncClient):
         """Test retrieving a format by ID."""
-        create_response = await client.post("/formats/", json={
-            "name": "Limited",
-            "game_system": "magic_the_gathering",
-            "base_format": "limited",
-            "card_pool": "Current Set"
-        })
+        create_response = await client.post(
+            "/formats/",
+            json={
+                "name": "Limited",
+                "game_system": "magic_the_gathering",
+                "base_format": "limited",
+                "card_pool": "Current Set",
+            },
+        )
         format_id = create_response.json()["id"]
 
         response = await client.get(f"/formats/{format_id}")
@@ -338,17 +340,19 @@ class TestFormatEndpoints:
     @pytest.mark.asyncio
     async def test_update_format(self, client: AsyncClient):
         """Test updating a format."""
-        create_response = await client.post("/formats/", json={
-            "name": "Modern",
-            "game_system": "magic_the_gathering",
-            "base_format": "constructed",
-            "card_pool": "Modern"
-        })
+        create_response = await client.post(
+            "/formats/",
+            json={
+                "name": "Modern",
+                "game_system": "magic_the_gathering",
+                "base_format": "constructed",
+                "card_pool": "Modern",
+            },
+        )
         format_id = create_response.json()["id"]
 
         response = await client.put(
-            f"/formats/{format_id}",
-            json={"description": "Updated description"}
+            f"/formats/{format_id}", json={"description": "Updated description"}
         )
         assert response.status_code == 200
         assert response.json()["description"] == "Updated description"
@@ -356,12 +360,15 @@ class TestFormatEndpoints:
     @pytest.mark.asyncio
     async def test_delete_format(self, client: AsyncClient):
         """Test deleting a format."""
-        create_response = await client.post("/formats/", json={
-            "name": "Temporary",
-            "game_system": "custom_tcg",
-            "base_format": "special",
-            "card_pool": "Custom"
-        })
+        create_response = await client.post(
+            "/formats/",
+            json={
+                "name": "Temporary",
+                "game_system": "custom_tcg",
+                "base_format": "special",
+                "card_pool": "Custom",
+            },
+        )
         format_id = create_response.json()["id"]
 
         response = await client.delete(f"/formats/{format_id}")
@@ -386,12 +393,15 @@ class TestValidationErrors:
     @pytest.mark.asyncio
     async def test_invalid_game_system(self, client: AsyncClient):
         """Test creating format with invalid game system."""
-        response = await client.post("/formats/", json={
-            "name": "Test",
-            "game_system": "invalid_system",
-            "base_format": "constructed",
-            "card_pool": "Test"
-        })
+        response = await client.post(
+            "/formats/",
+            json={
+                "name": "Test",
+                "game_system": "invalid_system",
+                "base_format": "constructed",
+                "card_pool": "Test",
+            },
+        )
         assert response.status_code == 422
 
     @pytest.mark.asyncio
@@ -411,18 +421,20 @@ class TestTournamentEndpoints:
         player_response = await client.post("/players/", json={"name": "Tournament Organizer"})
         player_id = player_response.json()["id"]
 
-        venue_response = await client.post("/venues/", json={
-            "name": "Test Game Store",
-            "address": "123 Main St"
-        })
+        venue_response = await client.post(
+            "/venues/", json={"name": "Test Game Store", "address": "123 Main St"}
+        )
         venue_id = venue_response.json()["id"]
 
-        format_response = await client.post("/formats/", json={
-            "name": "Pauper for Tournament Create Test",
-            "game_system": "magic_the_gathering",
-            "base_format": "constructed",
-            "card_pool": "Common only"
-        })
+        format_response = await client.post(
+            "/formats/",
+            json={
+                "name": "Pauper for Tournament Create Test",
+                "game_system": "magic_the_gathering",
+                "base_format": "constructed",
+                "card_pool": "Common only",
+            },
+        )
         format_id = format_response.json()["id"]
 
         # Now create tournament
@@ -433,7 +445,7 @@ class TestTournamentEndpoints:
             "created_by": player_id,
             "visibility": "public",
             "description": "Weekly Pauper tournament",
-            "max_players": 16
+            "max_players": 16,
         }
 
         response = await client.post("/tournaments/", json=tournament_data)
@@ -461,19 +473,25 @@ class TestTournamentEndpoints:
         # Create tournament first
         player_response = await client.post("/players/", json={"name": "TO"})
         venue_response = await client.post("/venues/", json={"name": "Store", "address": "123 St"})
-        format_response = await client.post("/formats/", json={
-            "name": "Format",
-            "game_system": "magic_the_gathering",
-            "base_format": "constructed",
-            "card_pool": "All"
-        })
+        format_response = await client.post(
+            "/formats/",
+            json={
+                "name": "Format",
+                "game_system": "magic_the_gathering",
+                "base_format": "constructed",
+                "card_pool": "All",
+            },
+        )
 
-        tournament_response = await client.post("/tournaments/", json={
-            "name": "Test Tournament",
-            "format_id": format_response.json()["id"],
-            "venue_id": venue_response.json()["id"],
-            "created_by": player_response.json()["id"]
-        })
+        tournament_response = await client.post(
+            "/tournaments/",
+            json={
+                "name": "Test Tournament",
+                "format_id": format_response.json()["id"],
+                "venue_id": venue_response.json()["id"],
+                "created_by": player_response.json()["id"],
+            },
+        )
         tournament_id = tournament_response.json()["id"]
 
         # Get tournament
@@ -496,26 +514,34 @@ class TestTournamentEndpoints:
         """Test updating a tournament."""
         # Create tournament first
         player_response = await client.post("/players/", json={"name": "TO Update Test"})
-        venue_response = await client.post("/venues/", json={"name": "Store Update", "address": "123 St"})
-        format_response = await client.post("/formats/", json={
-            "name": "Format for Update Test",
-            "game_system": "magic_the_gathering",
-            "base_format": "constructed",
-            "card_pool": "All"
-        })
+        venue_response = await client.post(
+            "/venues/", json={"name": "Store Update", "address": "123 St"}
+        )
+        format_response = await client.post(
+            "/formats/",
+            json={
+                "name": "Format for Update Test",
+                "game_system": "magic_the_gathering",
+                "base_format": "constructed",
+                "card_pool": "All",
+            },
+        )
 
-        tournament_response = await client.post("/tournaments/", json={
-            "name": "Original Name",
-            "format_id": format_response.json()["id"],
-            "venue_id": venue_response.json()["id"],
-            "created_by": player_response.json()["id"]
-        })
+        tournament_response = await client.post(
+            "/tournaments/",
+            json={
+                "name": "Original Name",
+                "format_id": format_response.json()["id"],
+                "venue_id": venue_response.json()["id"],
+                "created_by": player_response.json()["id"],
+            },
+        )
         tournament_id = tournament_response.json()["id"]
 
         # Update tournament
         response = await client.put(
             f"/tournaments/{tournament_id}",
-            json={"name": "Updated Name", "description": "Updated description"}
+            json={"name": "Updated Name", "description": "Updated description"},
         )
         assert response.status_code == 200
 
@@ -528,20 +554,28 @@ class TestTournamentEndpoints:
         """Test deleting a tournament."""
         # Create tournament first
         player_response = await client.post("/players/", json={"name": "TO Delete Test"})
-        venue_response = await client.post("/venues/", json={"name": "Store Delete", "address": "123 St"})
-        format_response = await client.post("/formats/", json={
-            "name": "Format for Delete Test",
-            "game_system": "magic_the_gathering",
-            "base_format": "constructed",
-            "card_pool": "All"
-        })
+        venue_response = await client.post(
+            "/venues/", json={"name": "Store Delete", "address": "123 St"}
+        )
+        format_response = await client.post(
+            "/formats/",
+            json={
+                "name": "Format for Delete Test",
+                "game_system": "magic_the_gathering",
+                "base_format": "constructed",
+                "card_pool": "All",
+            },
+        )
 
-        tournament_response = await client.post("/tournaments/", json={
-            "name": "To Delete",
-            "format_id": format_response.json()["id"],
-            "venue_id": venue_response.json()["id"],
-            "created_by": player_response.json()["id"]
-        })
+        tournament_response = await client.post(
+            "/tournaments/",
+            json={
+                "name": "To Delete",
+                "format_id": format_response.json()["id"],
+                "venue_id": venue_response.json()["id"],
+                "created_by": player_response.json()["id"],
+            },
+        )
         tournament_id = tournament_response.json()["id"]
 
         # Delete tournament
@@ -564,10 +598,9 @@ class TestTournamentEndpoints:
     async def test_list_tournaments_by_venue(self, client: AsyncClient):
         """Test filtering tournaments by venue."""
         # Create venue
-        venue_response = await client.post("/venues/", json={
-            "name": "Specific Store",
-            "address": "456 Main St"
-        })
+        venue_response = await client.post(
+            "/venues/", json={"name": "Specific Store", "address": "456 Main St"}
+        )
         venue_id = venue_response.json()["id"]
 
         # Query by venue
@@ -581,12 +614,15 @@ class TestTournamentEndpoints:
     async def test_list_tournaments_by_format(self, client: AsyncClient):
         """Test filtering tournaments by format."""
         # Create format
-        format_response = await client.post("/formats/", json={
-            "name": "Specific Format",
-            "game_system": "magic_the_gathering",
-            "base_format": "constructed",
-            "card_pool": "Test"
-        })
+        format_response = await client.post(
+            "/formats/",
+            json={
+                "name": "Specific Format",
+                "game_system": "magic_the_gathering",
+                "base_format": "constructed",
+                "card_pool": "Test",
+            },
+        )
         format_id = format_response.json()["id"]
 
         # Query by format
@@ -601,20 +637,28 @@ class TestTournamentEndpoints:
         """Test starting a tournament."""
         # Create tournament with registrations
         player_response = await client.post("/players/", json={"name": "TO Start Test"})
-        venue_response = await client.post("/venues/", json={"name": "Store Start", "address": "123 St"})
-        format_response = await client.post("/formats/", json={
-            "name": "Format for Start Test",
-            "game_system": "magic_the_gathering",
-            "base_format": "constructed",
-            "card_pool": "All"
-        })
+        venue_response = await client.post(
+            "/venues/", json={"name": "Store Start", "address": "123 St"}
+        )
+        format_response = await client.post(
+            "/formats/",
+            json={
+                "name": "Format for Start Test",
+                "game_system": "magic_the_gathering",
+                "base_format": "constructed",
+                "card_pool": "All",
+            },
+        )
 
-        tournament_response = await client.post("/tournaments/", json={
-            "name": "To Start",
-            "format_id": format_response.json()["id"],
-            "venue_id": venue_response.json()["id"],
-            "created_by": player_response.json()["id"]
-        })
+        tournament_response = await client.post(
+            "/tournaments/",
+            json={
+                "name": "To Start",
+                "format_id": format_response.json()["id"],
+                "venue_id": venue_response.json()["id"],
+                "created_by": player_response.json()["id"],
+            },
+        )
         tournament_id = tournament_response.json()["id"]
 
         # Register at least 2 players for tournament to start
@@ -631,20 +675,28 @@ class TestTournamentEndpoints:
         """Test completing a tournament."""
         # Create tournament
         player_response = await client.post("/players/", json={"name": "TO Complete Test"})
-        venue_response = await client.post("/venues/", json={"name": "Store Complete", "address": "123 St"})
-        format_response = await client.post("/formats/", json={
-            "name": "Format for Complete Test",
-            "game_system": "magic_the_gathering",
-            "base_format": "constructed",
-            "card_pool": "All"
-        })
+        venue_response = await client.post(
+            "/venues/", json={"name": "Store Complete", "address": "123 St"}
+        )
+        format_response = await client.post(
+            "/formats/",
+            json={
+                "name": "Format for Complete Test",
+                "game_system": "magic_the_gathering",
+                "base_format": "constructed",
+                "card_pool": "All",
+            },
+        )
 
-        tournament_response = await client.post("/tournaments/", json={
-            "name": "To Complete",
-            "format_id": format_response.json()["id"],
-            "venue_id": venue_response.json()["id"],
-            "created_by": player_response.json()["id"]
-        })
+        tournament_response = await client.post(
+            "/tournaments/",
+            json={
+                "name": "To Complete",
+                "format_id": format_response.json()["id"],
+                "venue_id": venue_response.json()["id"],
+                "created_by": player_response.json()["id"],
+            },
+        )
         tournament_id = tournament_response.json()["id"]
 
         # Try to complete tournament (should fail - no components, was never started)
@@ -666,29 +718,32 @@ class TestRegistrationEndpoints:
         player_response = await client.post("/players/", json={"name": "Alice"})
         player_id = player_response.json()["id"]
 
-        venue_response = await client.post("/venues/", json={
-            "name": "LGS for Registration Test"
-        })
+        venue_response = await client.post("/venues/", json={"name": "LGS for Registration Test"})
 
-        format_response = await client.post("/formats/", json={
-            "name": "Pauper for Registration Test",
-            "game_system": "magic_the_gathering",
-            "base_format": "constructed",
-            "card_pool": "Common only"
-        })
+        format_response = await client.post(
+            "/formats/",
+            json={
+                "name": "Pauper for Registration Test",
+                "game_system": "magic_the_gathering",
+                "base_format": "constructed",
+                "card_pool": "Common only",
+            },
+        )
 
-        tournament_response = await client.post("/tournaments/", json={
-            "name": "Weekly Pauper Registration Test",
-            "format_id": format_response.json()["id"],
-            "venue_id": venue_response.json()["id"],
-            "created_by": player_id
-        })
+        tournament_response = await client.post(
+            "/tournaments/",
+            json={
+                "name": "Weekly Pauper Registration Test",
+                "format_id": format_response.json()["id"],
+                "venue_id": venue_response.json()["id"],
+                "created_by": player_id,
+            },
+        )
         tournament_id = tournament_response.json()["id"]
 
         # Register player
         response = await client.post(
-            f"/tournaments/{tournament_id}/register",
-            json={"player_id": player_id}
+            f"/tournaments/{tournament_id}/register", json={"player_id": player_id}
         )
         assert response.status_code == 201
 
@@ -706,31 +761,35 @@ class TestRegistrationEndpoints:
         player_response = await client.post("/players/", json={"name": "Bob Password Test"})
         player_id = player_response.json()["id"]
 
-        venue_response = await client.post("/venues/", json={
-            "name": "LGS for Password Test"
-        })
+        venue_response = await client.post("/venues/", json={"name": "LGS for Password Test"})
 
-        format_response = await client.post("/formats/", json={
-            "name": "Modern for Registration Password Test",
-            "game_system": "magic_the_gathering",
-            "base_format": "constructed",
-            "card_pool": "Modern legal cards"
-        })
+        format_response = await client.post(
+            "/formats/",
+            json={
+                "name": "Modern for Registration Password Test",
+                "game_system": "magic_the_gathering",
+                "base_format": "constructed",
+                "card_pool": "Modern legal cards",
+            },
+        )
 
         # Create password-protected tournament
-        tournament_response = await client.post("/tournaments/", json={
-            "name": "Password Protected Tournament",
-            "format_id": format_response.json()["id"],
-            "venue_id": venue_response.json()["id"],
-            "created_by": player_id,
-            "registration_password": "secret123"
-        })
+        tournament_response = await client.post(
+            "/tournaments/",
+            json={
+                "name": "Password Protected Tournament",
+                "format_id": format_response.json()["id"],
+                "venue_id": venue_response.json()["id"],
+                "created_by": player_id,
+                "registration_password": "secret123",
+            },
+        )
         tournament_id = tournament_response.json()["id"]
 
         # Register with correct password
         response = await client.post(
             f"/tournaments/{tournament_id}/register",
-            json={"player_id": player_id, "password": "secret123"}
+            json={"player_id": player_id, "password": "secret123"},
         )
         assert response.status_code == 201
 
@@ -738,34 +797,40 @@ class TestRegistrationEndpoints:
     async def test_register_player_wrong_password(self, client: AsyncClient):
         """Test registration fails with wrong password."""
         # Create dependencies
-        player_response = await client.post("/players/", json={"name": "Charlie Wrong Password Test"})
+        player_response = await client.post(
+            "/players/", json={"name": "Charlie Wrong Password Test"}
+        )
         player_id = player_response.json()["id"]
 
-        venue_response = await client.post("/venues/", json={
-            "name": "LGS for Wrong Password Test"
-        })
+        venue_response = await client.post("/venues/", json={"name": "LGS for Wrong Password Test"})
 
-        format_response = await client.post("/formats/", json={
-            "name": "Standard for Registration Wrong Password Test",
-            "game_system": "magic_the_gathering",
-            "base_format": "constructed",
-            "card_pool": "Standard legal cards"
-        })
+        format_response = await client.post(
+            "/formats/",
+            json={
+                "name": "Standard for Registration Wrong Password Test",
+                "game_system": "magic_the_gathering",
+                "base_format": "constructed",
+                "card_pool": "Standard legal cards",
+            },
+        )
 
         # Create password-protected tournament
-        tournament_response = await client.post("/tournaments/", json={
-            "name": "Password Protected Tournament 2",
-            "format_id": format_response.json()["id"],
-            "venue_id": venue_response.json()["id"],
-            "created_by": player_id,
-            "registration_password": "correct_password"
-        })
+        tournament_response = await client.post(
+            "/tournaments/",
+            json={
+                "name": "Password Protected Tournament 2",
+                "format_id": format_response.json()["id"],
+                "venue_id": venue_response.json()["id"],
+                "created_by": player_id,
+                "registration_password": "correct_password",
+            },
+        )
         tournament_id = tournament_response.json()["id"]
 
         # Try to register with wrong password
         response = await client.post(
             f"/tournaments/{tournament_id}/register",
-            json={"player_id": player_id, "password": "wrong_password"}
+            json={"player_id": player_id, "password": "wrong_password"},
         )
         assert response.status_code == 403
         assert "password" in response.json()["detail"].lower()
@@ -777,36 +842,38 @@ class TestRegistrationEndpoints:
         player_response = await client.post("/players/", json={"name": "Diana"})
         player_id = player_response.json()["id"]
 
-        venue_response = await client.post("/venues/", json={
-            "name": "LGS for Duplicate Test"
-        })
+        venue_response = await client.post("/venues/", json={"name": "LGS for Duplicate Test"})
 
-        format_response = await client.post("/formats/", json={
-            "name": "Legacy for Registration Duplicate Test",
-            "game_system": "magic_the_gathering",
-            "base_format": "constructed",
-            "card_pool": "Legacy legal cards"
-        })
+        format_response = await client.post(
+            "/formats/",
+            json={
+                "name": "Legacy for Registration Duplicate Test",
+                "game_system": "magic_the_gathering",
+                "base_format": "constructed",
+                "card_pool": "Legacy legal cards",
+            },
+        )
 
-        tournament_response = await client.post("/tournaments/", json={
-            "name": "Duplicate Registration Test",
-            "format_id": format_response.json()["id"],
-            "venue_id": venue_response.json()["id"],
-            "created_by": player_id
-        })
+        tournament_response = await client.post(
+            "/tournaments/",
+            json={
+                "name": "Duplicate Registration Test",
+                "format_id": format_response.json()["id"],
+                "venue_id": venue_response.json()["id"],
+                "created_by": player_id,
+            },
+        )
         tournament_id = tournament_response.json()["id"]
 
         # First registration - should succeed
         response = await client.post(
-            f"/tournaments/{tournament_id}/register",
-            json={"player_id": player_id}
+            f"/tournaments/{tournament_id}/register", json={"player_id": player_id}
         )
         assert response.status_code == 201
 
         # Duplicate registration - should fail
         response = await client.post(
-            f"/tournaments/{tournament_id}/register",
-            json={"player_id": player_id}
+            f"/tournaments/{tournament_id}/register", json={"player_id": player_id}
         )
         assert response.status_code == 409
         assert "already registered" in response.json()["detail"]
@@ -819,8 +886,7 @@ class TestRegistrationEndpoints:
 
         fake_tournament_id = str(uuid4())
         response = await client.post(
-            f"/tournaments/{fake_tournament_id}/register",
-            json={"player_id": player_id}
+            f"/tournaments/{fake_tournament_id}/register", json={"player_id": player_id}
         )
         assert response.status_code == 404
         assert "tournament" in response.json()["detail"].lower()
@@ -831,30 +897,35 @@ class TestRegistrationEndpoints:
         # Create tournament dependencies
         player_response = await client.post("/players/", json={"name": "TO Player"})
 
-        venue_response = await client.post("/venues/", json={
-            "name": "LGS for Player Not Found Test"
-        })
+        venue_response = await client.post(
+            "/venues/", json={"name": "LGS for Player Not Found Test"}
+        )
 
-        format_response = await client.post("/formats/", json={
-            "name": "Vintage for Registration Player Not Found Test",
-            "game_system": "magic_the_gathering",
-            "base_format": "constructed",
-            "card_pool": "Vintage legal cards"
-        })
+        format_response = await client.post(
+            "/formats/",
+            json={
+                "name": "Vintage for Registration Player Not Found Test",
+                "game_system": "magic_the_gathering",
+                "base_format": "constructed",
+                "card_pool": "Vintage legal cards",
+            },
+        )
 
-        tournament_response = await client.post("/tournaments/", json={
-            "name": "Player Not Found Test",
-            "format_id": format_response.json()["id"],
-            "venue_id": venue_response.json()["id"],
-            "created_by": player_response.json()["id"]
-        })
+        tournament_response = await client.post(
+            "/tournaments/",
+            json={
+                "name": "Player Not Found Test",
+                "format_id": format_response.json()["id"],
+                "venue_id": venue_response.json()["id"],
+                "created_by": player_response.json()["id"],
+            },
+        )
         tournament_id = tournament_response.json()["id"]
 
         # Try to register non-existent player
         fake_player_id = str(uuid4())
         response = await client.post(
-            f"/tournaments/{tournament_id}/register",
-            json={"player_id": fake_player_id}
+            f"/tournaments/{tournament_id}/register", json={"player_id": fake_player_id}
         )
         assert response.status_code == 404
         assert "player" in response.json()["detail"].lower()
@@ -865,32 +936,36 @@ class TestRegistrationEndpoints:
         # Create dependencies
         to_response = await client.post("/players/", json={"name": "TO for Max Test"})
 
-        venue_response = await client.post("/venues/", json={
-            "name": "LGS for Max Players Test"
-        })
+        venue_response = await client.post("/venues/", json={"name": "LGS for Max Players Test"})
 
-        format_response = await client.post("/formats/", json={
-            "name": "Commander for Registration Max Players Test",
-            "game_system": "magic_the_gathering",
-            "base_format": "constructed",
-            "card_pool": "Commander legal cards"
-        })
+        format_response = await client.post(
+            "/formats/",
+            json={
+                "name": "Commander for Registration Max Players Test",
+                "game_system": "magic_the_gathering",
+                "base_format": "constructed",
+                "card_pool": "Commander legal cards",
+            },
+        )
 
         # Create tournament with max_players = 1
-        tournament_response = await client.post("/tournaments/", json={
-            "name": "Max Players Test Tournament",
-            "format_id": format_response.json()["id"],
-            "venue_id": venue_response.json()["id"],
-            "created_by": to_response.json()["id"],
-            "max_players": 1
-        })
+        tournament_response = await client.post(
+            "/tournaments/",
+            json={
+                "name": "Max Players Test Tournament",
+                "format_id": format_response.json()["id"],
+                "venue_id": venue_response.json()["id"],
+                "created_by": to_response.json()["id"],
+                "max_players": 1,
+            },
+        )
         tournament_id = tournament_response.json()["id"]
 
         # Register first player (should succeed)
         player1_response = await client.post("/players/", json={"name": "Max Test Player 1"})
         response = await client.post(
             f"/tournaments/{tournament_id}/register",
-            json={"player_id": player1_response.json()["id"]}
+            json={"player_id": player1_response.json()["id"]},
         )
         assert response.status_code == 201
 
@@ -898,7 +973,7 @@ class TestRegistrationEndpoints:
         player2_response = await client.post("/players/", json={"name": "Max Test Player 2"})
         response = await client.post(
             f"/tournaments/{tournament_id}/register",
-            json={"player_id": player2_response.json()["id"]}
+            json={"player_id": player2_response.json()["id"]},
         )
         assert response.status_code == 400
         assert "max" in response.json()["detail"].lower()
@@ -909,23 +984,27 @@ class TestRegistrationEndpoints:
         # Create dependencies
         to_response = await client.post("/players/", json={"name": "TO for List Test"})
 
-        venue_response = await client.post("/venues/", json={
-            "name": "LGS for List Test"
-        })
+        venue_response = await client.post("/venues/", json={"name": "LGS for List Test"})
 
-        format_response = await client.post("/formats/", json={
-            "name": "Limited for Registration List Test",
-            "game_system": "magic_the_gathering",
-            "base_format": "limited",
-            "card_pool": "Latest set"
-        })
+        format_response = await client.post(
+            "/formats/",
+            json={
+                "name": "Limited for Registration List Test",
+                "game_system": "magic_the_gathering",
+                "base_format": "limited",
+                "card_pool": "Latest set",
+            },
+        )
 
-        tournament_response = await client.post("/tournaments/", json={
-            "name": "List Registrations Test",
-            "format_id": format_response.json()["id"],
-            "venue_id": venue_response.json()["id"],
-            "created_by": to_response.json()["id"]
-        })
+        tournament_response = await client.post(
+            "/tournaments/",
+            json={
+                "name": "List Registrations Test",
+                "format_id": format_response.json()["id"],
+                "venue_id": venue_response.json()["id"],
+                "created_by": to_response.json()["id"],
+            },
+        )
         tournament_id = tournament_response.json()["id"]
 
         # Register multiple players
@@ -936,8 +1015,7 @@ class TestRegistrationEndpoints:
             player_ids.append(player_id)
 
             await client.post(
-                f"/tournaments/{tournament_id}/register",
-                json={"player_id": player_id}
+                f"/tournaments/{tournament_id}/register", json={"player_id": player_id}
             )
 
         # List all registrations
@@ -955,23 +1033,27 @@ class TestRegistrationEndpoints:
         # Create tournament without registrations
         to_response = await client.post("/players/", json={"name": "TO for Empty List"})
 
-        venue_response = await client.post("/venues/", json={
-            "name": "LGS for Empty List Test"
-        })
+        venue_response = await client.post("/venues/", json={"name": "LGS for Empty List Test"})
 
-        format_response = await client.post("/formats/", json={
-            "name": "Draft for Registration Empty List Test",
-            "game_system": "magic_the_gathering",
-            "base_format": "limited",
-            "card_pool": "Draft packs"
-        })
+        format_response = await client.post(
+            "/formats/",
+            json={
+                "name": "Draft for Registration Empty List Test",
+                "game_system": "magic_the_gathering",
+                "base_format": "limited",
+                "card_pool": "Draft packs",
+            },
+        )
 
-        tournament_response = await client.post("/tournaments/", json={
-            "name": "Empty Registrations Test",
-            "format_id": format_response.json()["id"],
-            "venue_id": venue_response.json()["id"],
-            "created_by": to_response.json()["id"]
-        })
+        tournament_response = await client.post(
+            "/tournaments/",
+            json={
+                "name": "Empty Registrations Test",
+                "format_id": format_response.json()["id"],
+                "venue_id": venue_response.json()["id"],
+                "created_by": to_response.json()["id"],
+            },
+        )
         tournament_id = tournament_response.json()["id"]
 
         # List registrations (should be empty)
@@ -993,35 +1075,34 @@ class TestRegistrationEndpoints:
         player_response = await client.post("/players/", json={"name": "Frank"})
         player_id = player_response.json()["id"]
 
-        venue_response = await client.post("/venues/", json={
-            "name": "LGS for Drop Test"
-        })
+        venue_response = await client.post("/venues/", json={"name": "LGS for Drop Test"})
 
-        format_response = await client.post("/formats/", json={
-            "name": "Sealed for Registration Drop Test",
-            "game_system": "magic_the_gathering",
-            "base_format": "limited",
-            "card_pool": "Sealed packs"
-        })
+        format_response = await client.post(
+            "/formats/",
+            json={
+                "name": "Sealed for Registration Drop Test",
+                "game_system": "magic_the_gathering",
+                "base_format": "limited",
+                "card_pool": "Sealed packs",
+            },
+        )
 
-        tournament_response = await client.post("/tournaments/", json={
-            "name": "Drop Player Test",
-            "format_id": format_response.json()["id"],
-            "venue_id": venue_response.json()["id"],
-            "created_by": player_id
-        })
+        tournament_response = await client.post(
+            "/tournaments/",
+            json={
+                "name": "Drop Player Test",
+                "format_id": format_response.json()["id"],
+                "venue_id": venue_response.json()["id"],
+                "created_by": player_id,
+            },
+        )
         tournament_id = tournament_response.json()["id"]
 
         # Register player
-        await client.post(
-            f"/tournaments/{tournament_id}/register",
-            json={"player_id": player_id}
-        )
+        await client.post(f"/tournaments/{tournament_id}/register", json={"player_id": player_id})
 
         # Drop player
-        response = await client.delete(
-            f"/tournaments/{tournament_id}/registrations/{player_id}"
-        )
+        response = await client.delete(f"/tournaments/{tournament_id}/registrations/{player_id}")
         assert response.status_code == 204
 
         # Verify player is dropped
@@ -1038,23 +1119,29 @@ class TestRegistrationEndpoints:
         # Create tournament
         to_response = await client.post("/players/", json={"name": "TO for Drop Not Registered"})
 
-        venue_response = await client.post("/venues/", json={
-            "name": "LGS for Drop Not Registered Test"
-        })
+        venue_response = await client.post(
+            "/venues/", json={"name": "LGS for Drop Not Registered Test"}
+        )
 
-        format_response = await client.post("/formats/", json={
-            "name": "Pioneer for Registration Drop Not Registered",
-            "game_system": "magic_the_gathering",
-            "base_format": "constructed",
-            "card_pool": "Pioneer legal cards"
-        })
+        format_response = await client.post(
+            "/formats/",
+            json={
+                "name": "Pioneer for Registration Drop Not Registered",
+                "game_system": "magic_the_gathering",
+                "base_format": "constructed",
+                "card_pool": "Pioneer legal cards",
+            },
+        )
 
-        tournament_response = await client.post("/tournaments/", json={
-            "name": "Drop Not Registered Test",
-            "format_id": format_response.json()["id"],
-            "venue_id": venue_response.json()["id"],
-            "created_by": to_response.json()["id"]
-        })
+        tournament_response = await client.post(
+            "/tournaments/",
+            json={
+                "name": "Drop Not Registered Test",
+                "format_id": format_response.json()["id"],
+                "venue_id": venue_response.json()["id"],
+                "created_by": to_response.json()["id"],
+            },
+        )
         tournament_id = tournament_response.json()["id"]
 
         # Try to drop player who was never registered
@@ -1087,6 +1174,7 @@ class TestRoundsAndMatchesEndpoints:
         """Helper to create a started tournament with registered players."""
         # Generate unique suffix for this test run
         from uuid import uuid4
+
         unique_id = str(uuid4())[:8]
 
         # Create TO
@@ -1094,39 +1182,42 @@ class TestRoundsAndMatchesEndpoints:
         to_id = to_response.json()["id"]
 
         # Create venue
-        venue_response = await client.post("/venues/", json={
-            "name": f"Venue-{unique_id}"
-        })
+        venue_response = await client.post("/venues/", json={"name": f"Venue-{unique_id}"})
 
         # Create format
-        format_response = await client.post("/formats/", json={
-            "name": f"Format-{unique_id}",
-            "game_system": "magic_the_gathering",
-            "base_format": "constructed",
-            "card_pool": "Test pool"
-        })
+        format_response = await client.post(
+            "/formats/",
+            json={
+                "name": f"Format-{unique_id}",
+                "game_system": "magic_the_gathering",
+                "base_format": "constructed",
+                "card_pool": "Test pool",
+            },
+        )
 
         # Create tournament
-        tournament_response = await client.post("/tournaments/", json={
-            "name": f"Tournament-{unique_id}",
-            "format_id": format_response.json()["id"],
-            "venue_id": venue_response.json()["id"],
-            "created_by": to_id
-        })
+        tournament_response = await client.post(
+            "/tournaments/",
+            json={
+                "name": f"Tournament-{unique_id}",
+                "format_id": format_response.json()["id"],
+                "venue_id": venue_response.json()["id"],
+                "created_by": to_id,
+            },
+        )
         tournament_id = tournament_response.json()["id"]
 
         # Register players
         player_ids = []
         for i in range(player_count):
-            player_response = await client.post("/players/", json={
-                "name": f"Player{i}-{unique_id}"
-            })
+            player_response = await client.post(
+                "/players/", json={"name": f"Player{i}-{unique_id}"}
+            )
             player_id = player_response.json()["id"]
             player_ids.append(player_id)
 
             await client.post(
-                f"/tournaments/{tournament_id}/register",
-                json={"player_id": player_id}
+                f"/tournaments/{tournament_id}/register", json={"player_id": player_id}
             )
 
         # Start tournament
@@ -1135,21 +1226,25 @@ class TestRoundsAndMatchesEndpoints:
 
         # Pair Round 1 to create matches
         pair_response = await client.post(f"/tournaments/{tournament_id}/rounds/1/pair")
-        assert pair_response.status_code == 201, f"Pairing failed: {pair_response.status_code} - {pair_response.json()}"
+        assert pair_response.status_code == 201, (
+            f"Pairing failed: {pair_response.status_code} - {pair_response.json()}"
+        )
 
         return tournament_id, player_ids
 
     @pytest.mark.asyncio
     async def test_pair_round_success(self, client: AsyncClient):
         """Test generating pairings for a round."""
-        tournament_id, player_ids = await self._create_tournament_with_players(client, player_count=4)
+        tournament_id, player_ids = await self._create_tournament_with_players(
+            client, player_count=4
+        )
 
         # Pair round 1 (should already exist from tournament start, so try round 2)
         # First, we need to complete round 1 with results
         # Get round 1
         round1_response = await client.get(f"/tournaments/{tournament_id}/rounds/1")
         assert round1_response.status_code == 200
-        
+
         # This test will be completed after implementing the endpoints
         # For now, just test that the endpoint will exist
 
@@ -1220,7 +1315,9 @@ class TestRoundsAndMatchesEndpoints:
     @pytest.mark.asyncio
     async def test_submit_match_result(self, client: AsyncClient):
         """Test submitting a match result."""
-        tournament_id, player_ids = await self._create_tournament_with_players(client, player_count=4)
+        tournament_id, player_ids = await self._create_tournament_with_players(
+            client, player_count=4
+        )
 
         # Get matches
         matches_response = await client.get(f"/tournaments/{tournament_id}/matches")
@@ -1234,8 +1331,8 @@ class TestRoundsAndMatchesEndpoints:
                 "winner_id": match["player1_id"],
                 "player1_wins": 2,
                 "player2_wins": 0,
-                "draws": 0
-            }
+                "draws": 0,
+            },
         )
         assert response.status_code == 200
 
@@ -1261,8 +1358,8 @@ class TestRoundsAndMatchesEndpoints:
                 "winner_id": None,  # Draw
                 "player1_wins": 1,
                 "player2_wins": 1,
-                "draws": 1
-            }
+                "draws": 1,
+            },
         )
         assert response.status_code == 200
 
@@ -1274,7 +1371,9 @@ class TestRoundsAndMatchesEndpoints:
     @pytest.mark.asyncio
     async def test_get_standings(self, client: AsyncClient):
         """Test getting tournament standings."""
-        tournament_id, player_ids = await self._create_tournament_with_players(client, player_count=4)
+        tournament_id, player_ids = await self._create_tournament_with_players(
+            client, player_count=4
+        )
 
         # Submit some results first
         matches_response = await client.get(f"/tournaments/{tournament_id}/matches")
@@ -1283,11 +1382,7 @@ class TestRoundsAndMatchesEndpoints:
         # Submit result for first match
         await client.put(
             f"/matches/{matches[0]['id']}/result",
-            json={
-                "winner_id": matches[0]["player1_id"],
-                "player1_wins": 2,
-                "player2_wins": 0
-            }
+            json={"winner_id": matches[0]["player1_id"], "player1_wins": 2, "player2_wins": 0},
         )
 
         # Get standings
@@ -1316,29 +1411,35 @@ class TestRoundsAndMatchesEndpoints:
         # Create tournament without starting it
         to_response = await client.post("/players/", json={"name": "TO Empty Standings"})
         venue_response = await client.post("/venues/", json={"name": "Venue Empty Standings"})
-        format_response = await client.post("/formats/", json={
-            "name": "Format Empty Standings",
-            "game_system": "magic_the_gathering",
-            "base_format": "constructed",
-            "card_pool": "Test"
-        })
+        format_response = await client.post(
+            "/formats/",
+            json={
+                "name": "Format Empty Standings",
+                "game_system": "magic_the_gathering",
+                "base_format": "constructed",
+                "card_pool": "Test",
+            },
+        )
 
-        tournament_response = await client.post("/tournaments/", json={
-            "name": "Empty Standings Tournament",
-            "format_id": format_response.json()["id"],
-            "venue_id": venue_response.json()["id"],
-            "created_by": to_response.json()["id"]
-        })
+        tournament_response = await client.post(
+            "/tournaments/",
+            json={
+                "name": "Empty Standings Tournament",
+                "format_id": format_response.json()["id"],
+                "venue_id": venue_response.json()["id"],
+                "created_by": to_response.json()["id"],
+            },
+        )
         tournament_id = tournament_response.json()["id"]
 
         # Register players but don't start
         for i in range(2):
-            player_response = await client.post("/players/", json={
-                "name": f"Player {i} Empty Standings"
-            })
+            player_response = await client.post(
+                "/players/", json={"name": f"Player {i} Empty Standings"}
+            )
             await client.post(
                 f"/tournaments/{tournament_id}/register",
-                json={"player_id": player_response.json()["id"]}
+                json={"player_id": player_response.json()["id"]},
             )
 
         # Get standings (should return players with 0 points)

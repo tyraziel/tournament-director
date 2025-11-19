@@ -66,7 +66,7 @@ class TournamentCreate(BaseModel):
     description: str | None = None
     registration_deadline: datetime | None = None
     auto_advance_rounds: bool = False
-    
+
     # Registration control
     registration_auto_open_time: datetime | None = None
     registration_auto_close_time: datetime | None = None

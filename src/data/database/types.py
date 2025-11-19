@@ -10,11 +10,12 @@ AIA EAI Hin R Claude Code [Sonnet 4.5] v1.0
 """
 
 import json
-from typing import Any, Dict, Optional
-from uuid import UUID as PyUUID
+from typing import Any
+from uuid import UUID as PyUUID  # noqa: N811  # SQLAlchemy type alias
 
 from sqlalchemy import String, Text, TypeDecorator
-from sqlalchemy.dialects.postgresql import JSONB, UUID as PostgreSQLUUID
+from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.dialects.postgresql import UUID as PostgreSQLUUID  # noqa: N811
 
 
 class UUID(TypeDecorator):
@@ -39,11 +40,10 @@ class UUID(TypeDecorator):
         """Select appropriate type based on database dialect."""
         if dialect.name == "postgresql":
             return dialect.type_descriptor(PostgreSQLUUID(as_uuid=True))
-        else:
-            # MySQL, MariaDB, SQLite: use CHAR(36)
-            return dialect.type_descriptor(String(36))
+        # MySQL, MariaDB, SQLite: use CHAR(36)
+        return dialect.type_descriptor(String(36))
 
-    def process_bind_param(self, value: Optional[PyUUID], dialect: Any) -> Optional[str]:
+    def process_bind_param(self, value: PyUUID | None, dialect: Any) -> str | None:
         """Convert Python UUID to database format."""
         if value is None:
             return None
@@ -58,7 +58,7 @@ class UUID(TypeDecorator):
         # Other databases: convert to hyphenated string
         return str(value)
 
-    def process_result_value(self, value: Optional[Any], dialect: Any) -> Optional[PyUUID]:
+    def process_result_value(self, value: Any | None, dialect: Any) -> PyUUID | None:
         """Convert database format to Python UUID."""
         if value is None:
             return None
@@ -98,11 +98,12 @@ class JSON(TypeDecorator):
         if dialect.name == "postgresql":
             # PostgreSQL: Use JSONB for better performance and indexing
             return dialect.type_descriptor(JSONB())
-        elif dialect.name in ("mysql", "mariadb"):
+        if dialect.name in ("mysql", "mariadb"):
             # MySQL/MariaDB 5.7+: Use native JSON type
             # Falls back to TEXT for older versions
             try:
-                from sqlalchemy.dialects.mysql import JSON as MySQLJSON
+                from sqlalchemy.dialects.mysql import JSON as MySQLJSON  # noqa: N811
+
                 return dialect.type_descriptor(MySQLJSON())
             except ImportError:
                 return dialect.type_descriptor(Text())
@@ -110,11 +111,7 @@ class JSON(TypeDecorator):
             # SQLite: Use TEXT
             return dialect.type_descriptor(Text())
 
-    def process_bind_param(
-        self,
-        value: Optional[Dict[str, Any]],
-        dialect: Any
-    ) -> Optional[Any]:
+    def process_bind_param(self, value: dict[str, Any] | None, dialect: Any) -> Any | None:
         """Convert Python dict to database format."""
         if value is None:
             return None
@@ -126,11 +123,7 @@ class JSON(TypeDecorator):
         # SQLite: Serialize to JSON string
         return json.dumps(value)
 
-    def process_result_value(
-        self,
-        value: Optional[Any],
-        dialect: Any
-    ) -> Optional[Dict[str, Any]]:
+    def process_result_value(self, value: Any | None, dialect: Any) -> dict[str, Any] | None:
         """Convert database format to Python dict."""
         if value is None:
             return None

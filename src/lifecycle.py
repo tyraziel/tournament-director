@@ -8,13 +8,12 @@ AIA EAI Hin R Claude Code [Sonnet 4.5] v1.0
 """
 
 import logging
-from uuid import uuid4
 from datetime import datetime, timezone
-from typing import Optional
+from uuid import uuid4
 
-from src.models.match import Round, Match, Component
+from src.models.base import ComponentStatus, PlayerStatus, RoundStatus, TournamentStatus
+from src.models.match import Component, Match, Round
 from src.models.tournament import Tournament, TournamentRegistration
-from src.models.base import RoundStatus, TournamentStatus, ComponentStatus, PlayerStatus
 
 logger = logging.getLogger(__name__)
 
@@ -79,10 +78,10 @@ def advance_to_next_round(
     current_round: Round,
     component_id,
     tournament_id,
-    max_rounds: Optional[int] = None,
-    tournament: Optional[Tournament] = None,
-    component: Optional[Component] = None,
-) -> Optional[Round]:
+    max_rounds: int | None = None,
+    tournament: Tournament | None = None,
+    component: Component | None = None,
+) -> Round | None:
     """
     Advance tournament from current round to the next round.
 
@@ -105,7 +104,9 @@ def advance_to_next_round(
 
     Example:
         >>> current_round.status = RoundStatus.ACTIVE
-        >>> next_round = advance_to_next_round(current_round, component_id, tournament_id, max_rounds=3)
+        >>> next_round = advance_to_next_round(
+        ...     current_round, component_id, tournament_id, max_rounds=3
+        ... )
         >>> if next_round:
         ...     # Continue tournament with next_round
         ... else:
@@ -175,8 +176,8 @@ def advance_to_next_round(
 def should_tournament_end(
     rounds: list[Round],
     matches: list[Match],
-    max_rounds: Optional[int] = None,
-    min_rounds: Optional[int] = None,
+    max_rounds: int | None = None,
+    min_rounds: int | None = None,
 ) -> bool:
     """
     Determine if a Swiss tournament should end.
@@ -221,8 +222,7 @@ def should_tournament_end(
     # For now, we rely on max_rounds
 
     logger.debug(
-        f"Tournament should not end: Round {current_round_number}, "
-        f"no termination conditions met"
+        f"Tournament should not end: Round {current_round_number}, no termination conditions met"
     )
     return False
 
@@ -278,7 +278,9 @@ def start_tournament(
         raise ValueError(error_msg)
 
     if tournament.status == TournamentStatus.COMPLETED:
-        error_msg = f"Cannot start tournament in {tournament.status.value} status (already finished)"
+        error_msg = (
+            f"Cannot start tournament in {tournament.status.value} status (already finished)"
+        )
         logger.error(error_msg)
         raise ValueError(error_msg)
 
@@ -299,8 +301,7 @@ def start_tournament(
     tournament.start_time = datetime.now(timezone.utc)
 
     logger.info(
-        f"Tournament started: status={tournament.status.value}, "
-        f"start_time={tournament.start_time}"
+        f"Tournament started: status={tournament.status.value}, start_time={tournament.start_time}"
     )
 
     # Activate component
@@ -378,8 +379,7 @@ def end_tournament(
     tournament.end_time = datetime.now(timezone.utc)
 
     logger.info(
-        f"Tournament completed: status={tournament.status.value}, "
-        f"end_time={tournament.end_time}"
+        f"Tournament completed: status={tournament.status.value}, end_time={tournament.end_time}"
     )
 
     # Complete component

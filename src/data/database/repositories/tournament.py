@@ -3,17 +3,16 @@
 AIA EAI Hin R Claude Code [Sonnet 4.5] v1.0
 """
 
-from typing import Any, Dict, List
 from uuid import UUID
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.data.database.models import TournamentModel
 from src.data.exceptions import DuplicateError, NotFoundError
 from src.data.interface import TournamentRepository
-from src.data.database.models import TournamentModel
-from src.models.tournament import Tournament, RegistrationControl
 from src.models.base import TournamentStatus, TournamentVisibility
+from src.models.tournament import RegistrationControl, Tournament
 
 
 class DatabaseTournamentRepository(TournamentRepository):
@@ -79,7 +78,7 @@ class DatabaseTournamentRepository(TournamentRepository):
 
         return self._to_pydantic(db_tournament)
 
-    async def list_by_status(self, status: str) -> List[Tournament]:
+    async def list_by_status(self, status: str) -> list[Tournament]:
         """List tournaments by status."""
         stmt = select(TournamentModel).where(TournamentModel.status == status)
         result = await self.session.execute(stmt)
@@ -87,7 +86,7 @@ class DatabaseTournamentRepository(TournamentRepository):
 
         return [self._to_pydantic(db_tournament) for db_tournament in db_tournaments]
 
-    async def list_by_venue(self, venue_id: UUID) -> List[Tournament]:
+    async def list_by_venue(self, venue_id: UUID) -> list[Tournament]:
         """List tournaments by venue."""
         stmt = select(TournamentModel).where(TournamentModel.venue_id == venue_id)
         result = await self.session.execute(stmt)
@@ -95,7 +94,7 @@ class DatabaseTournamentRepository(TournamentRepository):
 
         return [self._to_pydantic(db_tournament) for db_tournament in db_tournaments]
 
-    async def list_by_format(self, format_id: UUID) -> List[Tournament]:
+    async def list_by_format(self, format_id: UUID) -> list[Tournament]:
         """List tournaments by format."""
         stmt = select(TournamentModel).where(TournamentModel.format_id == format_id)
         result = await self.session.execute(stmt)
@@ -103,7 +102,7 @@ class DatabaseTournamentRepository(TournamentRepository):
 
         return [self._to_pydantic(db_tournament) for db_tournament in db_tournaments]
 
-    async def list_by_organizer(self, organizer_id: UUID) -> List[Tournament]:
+    async def list_by_organizer(self, organizer_id: UUID) -> list[Tournament]:
         """List tournaments by organizer (created_by)."""
         stmt = select(TournamentModel).where(TournamentModel.created_by == organizer_id)
         result = await self.session.execute(stmt)
@@ -111,7 +110,7 @@ class DatabaseTournamentRepository(TournamentRepository):
 
         return [self._to_pydantic(db_tournament) for db_tournament in db_tournaments]
 
-    async def list_all(self, limit: int | None = None, offset: int = 0) -> List[Tournament]:
+    async def list_all(self, limit: int | None = None, offset: int = 0) -> list[Tournament]:
         """List all tournaments with optional pagination."""
         stmt = select(TournamentModel).offset(offset)
         if limit:

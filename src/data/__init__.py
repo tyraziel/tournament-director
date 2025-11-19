@@ -25,7 +25,6 @@ from .interface import (
 __all__ = [
     # Core interface
     "DataLayer",
-
     # Repository interfaces
     "PlayerRepository",
     "VenueRepository",
@@ -35,7 +34,6 @@ __all__ = [
     "ComponentRepository",
     "RoundRepository",
     "MatchRepository",
-
     # Exceptions
     "DataLayerError",
     "NotFoundError",

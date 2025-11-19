@@ -7,27 +7,24 @@ This module defines comprehensive test cases for Swiss tournament pairing,
 including edge cases, bye handling, and pairing constraints.
 """
 
-import pytest
+import random
 from datetime import datetime, timezone
-from uuid import uuid4, UUID
+from uuid import UUID, uuid4
 
-from src.models.player import Player
-from src.models.tournament import Tournament, TournamentRegistration, RegistrationControl
-from src.models.format import Format
-from src.models.venue import Venue
-from src.models.match import Match, Round, Component
+import pytest
+
 from src.models.base import (
-    GameSystem,
-    BaseFormat,
+    ComponentStatus,
+    ComponentType,
+    PlayerStatus,
+    RoundStatus,
     TournamentStatus,
     TournamentVisibility,
-    PlayerStatus,
-    ComponentType,
-    ComponentStatus,
-    RoundStatus,
 )
-from src.swiss import pair_round_1, pair_round, calculate_standings
-
+from src.models.match import Component, Match, Round
+from src.models.player import Player
+from src.models.tournament import RegistrationControl, Tournament, TournamentRegistration
+from src.swiss import calculate_standings, pair_round, pair_round_1
 
 # =============================================================================
 # Test Fixtures and Helpers
@@ -37,6 +34,10 @@ from src.swiss import pair_round_1, pair_round, calculate_standings
 @pytest.fixture
 def base_tournament_data():
     """Create base tournament setup for testing."""
+    # Set random seed for consistent pairing behavior in tests
+    # Seed chosen to avoid impossible pairing scenarios in test cases
+    random.seed(12345)
+
     format_id = uuid4()
     venue_id = uuid4()
     to_id = uuid4()
@@ -78,7 +79,7 @@ def create_test_players(count: int) -> list[Player]:
     return [
         Player(
             id=uuid4(),
-            name=f"Player {i+1}",
+            name=f"Player {i + 1}",
             created_at=datetime.now(timezone.utc),
         )
         for i in range(count)
@@ -142,9 +143,7 @@ class TestRound1Pairing:
         EXPECTED: 4 matches, all players paired once, no byes
         """
         players = create_test_players(8)
-        registrations = create_registrations(
-            base_tournament_data["tournament_id"], players
-        )
+        registrations = create_registrations(base_tournament_data["tournament_id"], players)
 
         # AIA EAI Hin R Claude Code [Sonnet 4.5] v1.0 - Test implementation
         pairings = pair_round_1(registrations, base_tournament_data["component"])
@@ -165,9 +164,7 @@ class TestRound1Pairing:
         EXPECTED: 3 matches + 1 bye (lowest sequence ID or random)
         """
         players = create_test_players(7)
-        registrations = create_registrations(
-            base_tournament_data["tournament_id"], players
-        )
+        registrations = create_registrations(base_tournament_data["tournament_id"], players)
 
         # AIA EAI Hin R Claude Code [Sonnet 4.5] v1.0 - Test implementation
         pairings = pair_round_1(registrations, base_tournament_data["component"])
@@ -225,13 +222,11 @@ class TestSubsequentRoundPairing:
           - NO rematches from round 1
         """
         players = create_test_players(8)
-        registrations = create_registrations(
-            base_tournament_data["tournament_id"], players
-        )
+        registrations = create_registrations(base_tournament_data["tournament_id"], players)
 
         # Create round 1
         round1_id = uuid4()
-        round1 = Round(
+        Round(
             id=round1_id,
             tournament_id=base_tournament_data["tournament_id"],
             component_id=base_tournament_data["component_id"],
@@ -305,7 +300,7 @@ class TestSubsequentRoundPairing:
         # Winners: players[0], players[2], players[4], players[6]
         # Losers: players[1], players[3], players[5], players[7]
         winners = {players[0].id, players[2].id, players[4].id, players[6].id}
-        losers = {players[1].id, players[3].id, players[5].id, players[7].id}
+        {players[1].id, players[3].id, players[5].id, players[7].id}
 
         # Count matches within each bracket
         winner_matches = 0
@@ -382,9 +377,7 @@ class TestByeHandling:
         """
         # Create 8 players
         players = create_test_players(8)
-        registrations = create_registrations(
-            base_tournament_data["tournament_id"], players
-        )
+        registrations = create_registrations(base_tournament_data["tournament_id"], players)
 
         # Pair round 1
         round1_pairings = pair_round_1(registrations, base_tournament_data["component"])
@@ -421,8 +414,9 @@ class TestByeHandling:
         # The bye should go to the lowest-ranked player (last in standings)
         lowest_ranked = standings[-1]
         bye_match = bye_matches[0]
-        assert bye_match.player1_id == lowest_ranked.player.player_id, \
+        assert bye_match.player1_id == lowest_ranked.player.player_id, (
             f"Bye should go to lowest-ranked player (rank {lowest_ranked.rank})"
+        )
         assert bye_match.player1_wins == 2
         assert bye_match.player2_wins == 0
 
@@ -438,9 +432,7 @@ class TestByeHandling:
         """
         # Create 5 players
         players = create_test_players(5)
-        registrations = create_registrations(
-            base_tournament_data["tournament_id"], players
-        )
+        registrations = create_registrations(base_tournament_data["tournament_id"], players)
 
         all_matches = []
         config = {"standings_tiebreakers": ["omw", "gw", "ogw"]}
@@ -497,9 +489,7 @@ class TestByeHandling:
         """
         # Create 7 players (odd count)
         players = create_test_players(7)
-        registrations = create_registrations(
-            base_tournament_data["tournament_id"], players
-        )
+        registrations = create_registrations(base_tournament_data["tournament_id"], players)
 
         # Pair round 1
         round1_pairings = pair_round_1(registrations, base_tournament_data["component"])
@@ -533,9 +523,7 @@ class TestPlayerStateChanges:
         EXPECTED: Player is NOT paired in round 2 or beyond
         """
         players = create_test_players(8)
-        registrations = create_registrations(
-            base_tournament_data["tournament_id"], players
-        )
+        registrations = create_registrations(base_tournament_data["tournament_id"], players)
 
         # Create round 1 matches
         round1_pairings = pair_round_1(registrations, base_tournament_data["component"])
@@ -579,9 +567,7 @@ class TestPlayerStateChanges:
         """
         # Start with 6 players
         players = create_test_players(6)
-        registrations = create_registrations(
-            base_tournament_data["tournament_id"], players
-        )
+        registrations = create_registrations(base_tournament_data["tournament_id"], players)
 
         # Run round 1
         round1_pairings = pair_round_1(registrations, base_tournament_data["component"])
@@ -607,6 +593,7 @@ class TestPlayerStateChanges:
 
         # Generate bye loss for late entry
         from src.swiss.pairing import generate_bye_losses_for_late_entry
+
         bye_losses = generate_bye_losses_for_late_entry(
             late_registration,
             base_tournament_data["component"],
@@ -649,9 +636,7 @@ class TestPlayerStateChanges:
         EXPECTED: Round 2 should have 1 bye for the 7 remaining players
         """
         players = create_test_players(8)
-        registrations = create_registrations(
-            base_tournament_data["tournament_id"], players
-        )
+        registrations = create_registrations(base_tournament_data["tournament_id"], players)
 
         # Create round 1 matches (8 players, 4 matches, no byes)
         round1_pairings = pair_round_1(registrations, base_tournament_data["component"])
@@ -693,7 +678,218 @@ class TestPlayerStateChanges:
 
 
 # =============================================================================
-# Test Case 5: Tiebreaker Calculations
+# Test Case 5: Impossible Pairing Scenarios
+# =============================================================================
+
+
+class TestImpossiblePairing:
+    """Test impossible pairing detection and rematch handling."""
+
+    def test_impossible_pairing_raises_error(self, base_tournament_data):
+        """
+        SCENARIO: 4 players, each plays everyone once in 3 rounds
+        After round 3, pairing is impossible without rematches
+
+        EXPECTED: ValueError raised with helpful TO guidance
+        """
+        # Create 4 players
+        players = create_test_players(4)
+        registrations = create_registrations(base_tournament_data["tournament_id"], players)
+
+        # Round 1: P1 vs P2, P3 vs P4
+        round1_pairings = pair_round_1(registrations, base_tournament_data["component"])
+        assert len(round1_pairings) == 2
+
+        # All player1s win
+        for match in round1_pairings:
+            match.player1_wins = 2
+            match.player2_wins = 0
+
+        # Round 2: Should pair winners (P1 vs P3) and losers (P2 vs P4)
+        config = {"standings_tiebreakers": ["omw", "gw", "ogw"]}
+        round2_pairings = pair_round(
+            registrations,
+            round1_pairings,
+            base_tournament_data["component"],
+            config,
+            round_number=2,
+        )
+        assert len(round2_pairings) == 2
+
+        # All player1s win again
+        for match in round2_pairings:
+            match.player1_wins = 2
+            match.player2_wins = 0
+
+        all_matches = round1_pairings + round2_pairings
+
+        # Round 3: Should be IMPOSSIBLE - all players have played each other
+        # P1 played: P2, P3  (needs to play P4)
+        # P2 played: P1, P4  (needs to play P3)
+        # P3 played: P4, P1  (needs to play P2)
+        # P4 played: P3, P2  (needs to play P1)
+        # Valid pairings: P1 vs P4, P2 vs P3
+
+        # But after 2 more rounds, all will have played each other!
+        round3_pairings = pair_round(
+            registrations,
+            all_matches,
+            base_tournament_data["component"],
+            config,
+            round_number=3,
+        )
+        for match in round3_pairings:
+            match.player1_wins = 2
+            match.player2_wins = 0
+
+        all_matches = round1_pairings + round2_pairings + round3_pairings
+
+        # Round 4: NOW it's impossible - everyone has played everyone
+        with pytest.raises(ValueError) as exc_info:
+            pair_round(
+                registrations,
+                all_matches,
+                base_tournament_data["component"],
+                config,
+                round_number=4,
+            )
+
+        # Verify error message provides TO guidance
+        error_msg = str(exc_info.value)
+        assert "IMPOSSIBLE PAIRING" in error_msg
+        assert "Tournament Organizer Actions:" in error_msg
+        assert "manually pair these players as rematches" in error_msg
+
+    def test_rematch_override_allows_pairing(self, base_tournament_data):
+        """
+        SCENARIO: Same as above, but with allow_rematches_override=True
+        EXPECTED: Pairing succeeds with rematch warnings
+        """
+        # Create 4 players
+        players = create_test_players(4)
+        registrations = create_registrations(base_tournament_data["tournament_id"], players)
+
+        # Round 1, 2, 3: Same as above test
+        round1_pairings = pair_round_1(registrations, base_tournament_data["component"])
+        for match in round1_pairings:
+            match.player1_wins = 2
+            match.player2_wins = 0
+
+        config = {"standings_tiebreakers": ["omw", "gw", "ogw"]}
+        round2_pairings = pair_round(
+            registrations,
+            round1_pairings,
+            base_tournament_data["component"],
+            config,
+            round_number=2,
+        )
+        for match in round2_pairings:
+            match.player1_wins = 2
+            match.player2_wins = 0
+
+        all_matches = round1_pairings + round2_pairings
+        round3_pairings = pair_round(
+            registrations,
+            all_matches,
+            base_tournament_data["component"],
+            config,
+            round_number=3,
+        )
+        for match in round3_pairings:
+            match.player1_wins = 2
+            match.player2_wins = 0
+
+        all_matches = round1_pairings + round2_pairings + round3_pairings
+
+        # Round 4: With override, this should succeed as rematches
+        round4_pairings = pair_round(
+            registrations,
+            all_matches,
+            base_tournament_data["component"],
+            config,
+            round_number=4,
+            allow_rematches_override=True,  # ← TO override
+        )
+
+        # Verify pairings were created
+        assert len(round4_pairings) == 2
+        assert all(m.player2_id is not None for m in round4_pairings)
+
+        # Verify these are indeed rematches (each pair played before)
+        rematch_count = 0
+        for round4_match in round4_pairings:
+            for previous_match in all_matches:
+                if (
+                    round4_match.player1_id == previous_match.player1_id
+                    and round4_match.player2_id == previous_match.player2_id
+                ) or (
+                    round4_match.player1_id == previous_match.player2_id
+                    and round4_match.player2_id == previous_match.player1_id
+                ):
+                    rematch_count += 1
+                    break
+
+        assert rematch_count == 2, "All round 4 pairings should be rematches"
+
+    def test_rematch_config_allows_pairing(self, base_tournament_data):
+        """
+        SCENARIO: Tournament config has allow_rematches=True
+        EXPECTED: Pairing succeeds without override parameter
+        """
+        # Create 4 players
+        players = create_test_players(4)
+        registrations = create_registrations(base_tournament_data["tournament_id"], players)
+
+        # Rounds 1-3 (same setup)
+        round1_pairings = pair_round_1(registrations, base_tournament_data["component"])
+        for match in round1_pairings:
+            match.player1_wins = 2
+            match.player2_wins = 0
+
+        config = {
+            "standings_tiebreakers": ["omw", "gw", "ogw"],
+            "allow_rematches": True,  # ← Tournament-level config
+        }
+        round2_pairings = pair_round(
+            registrations,
+            round1_pairings,
+            base_tournament_data["component"],
+            config,
+            round_number=2,
+        )
+        for match in round2_pairings:
+            match.player1_wins = 2
+            match.player2_wins = 0
+
+        all_matches = round1_pairings + round2_pairings
+        round3_pairings = pair_round(
+            registrations,
+            all_matches,
+            base_tournament_data["component"],
+            config,
+            round_number=3,
+        )
+        for match in round3_pairings:
+            match.player1_wins = 2
+            match.player2_wins = 0
+
+        all_matches = round1_pairings + round2_pairings + round3_pairings
+
+        # Round 4: Should succeed because of config
+        round4_pairings = pair_round(
+            registrations,
+            all_matches,
+            base_tournament_data["component"],
+            config,  # allow_rematches is in config
+            round_number=4,
+        )
+
+        assert len(round4_pairings) == 2
+        assert all(m.player2_id is not None for m in round4_pairings)
+
+
+# =============================================================================
+# Test Case 6: Tiebreaker Calculations
 # =============================================================================
 
 
@@ -824,9 +1020,7 @@ class TestFullTournamentPairing:
         """
         # AIA EAI Hin R Claude Code [Sonnet 4.5] v1.0 - Integration test
         players = create_test_players(8)
-        registrations = create_registrations(
-            base_tournament_data["tournament_id"], players
-        )
+        registrations = create_registrations(base_tournament_data["tournament_id"], players)
         config = {"standings_tiebreakers": ["omw", "gw", "ogw"]}
         all_matches = []
 
@@ -843,8 +1037,7 @@ class TestFullTournamentPairing:
 
         # ROUND 2
         round2 = pair_round(
-            registrations, all_matches, base_tournament_data["component"],
-            config, round_number=2
+            registrations, all_matches, base_tournament_data["component"], config, round_number=2
         )
         assert len(round2) == 4
 
@@ -861,8 +1054,7 @@ class TestFullTournamentPairing:
 
         # ROUND 3
         round3 = pair_round(
-            registrations, all_matches, base_tournament_data["component"],
-            config, round_number=3
+            registrations, all_matches, base_tournament_data["component"], config, round_number=3
         )
         assert len(round3) == 4
 
@@ -892,9 +1084,7 @@ class TestFullTournamentPairing:
         """
         # AIA EAI Hin R Claude Code [Sonnet 4.5] v1.0 - Integration test with byes
         players = create_test_players(7)
-        registrations = create_registrations(
-            base_tournament_data["tournament_id"], players
-        )
+        registrations = create_registrations(base_tournament_data["tournament_id"], players)
         config = {"standings_tiebreakers": ["omw", "gw", "ogw"]}
         all_matches = []
         bye_recipients = []  # Track who gets byes
@@ -923,8 +1113,7 @@ class TestFullTournamentPairing:
 
         # ROUND 2
         round2 = pair_round(
-            registrations, all_matches, base_tournament_data["component"],
-            config, round_number=2
+            registrations, all_matches, base_tournament_data["component"], config, round_number=2
         )
         assert len(round2) == 4
         bye_matches_r2 = [m for m in round2 if m.player2_id is None]
@@ -933,12 +1122,10 @@ class TestFullTournamentPairing:
 
         # Check no rematches (excluding bye matches)
         round1_pairs = {
-            frozenset([m.player1_id, m.player2_id])
-            for m in round1 if m.player2_id is not None
+            frozenset([m.player1_id, m.player2_id]) for m in round1 if m.player2_id is not None
         }
         round2_pairs = {
-            frozenset([m.player1_id, m.player2_id])
-            for m in round2 if m.player2_id is not None
+            frozenset([m.player1_id, m.player2_id]) for m in round2 if m.player2_id is not None
         }
         assert len(round1_pairs & round2_pairs) == 0, "Found rematches in round 2"
 
@@ -961,8 +1148,7 @@ class TestFullTournamentPairing:
 
         # ROUND 3
         round3 = pair_round(
-            registrations, all_matches, base_tournament_data["component"],
-            config, round_number=3
+            registrations, all_matches, base_tournament_data["component"], config, round_number=3
         )
         assert len(round3) == 4
         bye_matches_r3 = [m for m in round3 if m.player2_id is None]
@@ -971,8 +1157,7 @@ class TestFullTournamentPairing:
 
         # Check no rematches
         round3_pairs = {
-            frozenset([m.player1_id, m.player2_id])
-            for m in round3 if m.player2_id is not None
+            frozenset([m.player1_id, m.player2_id]) for m in round3 if m.player2_id is not None
         }
         all_prev_pairs = round1_pairs | round2_pairs
         assert len(all_prev_pairs & round3_pairs) == 0, "Found rematches in round 3"
@@ -986,8 +1171,7 @@ class TestFullTournamentPairing:
 
         # ROUND 4
         round4 = pair_round(
-            registrations, all_matches, base_tournament_data["component"],
-            config, round_number=4
+            registrations, all_matches, base_tournament_data["component"], config, round_number=4
         )
         assert len(round4) == 4
         bye_matches_r4 = [m for m in round4 if m.player2_id is None]
@@ -996,8 +1180,7 @@ class TestFullTournamentPairing:
 
         # Check no rematches
         round4_pairs = {
-            frozenset([m.player1_id, m.player2_id])
-            for m in round4 if m.player2_id is not None
+            frozenset([m.player1_id, m.player2_id]) for m in round4 if m.player2_id is not None
         }
         all_prev_pairs = round1_pairs | round2_pairs | round3_pairs
         assert len(all_prev_pairs & round4_pairs) == 0, "Found rematches in round 4"
@@ -1036,9 +1219,7 @@ class TestFullTournamentPairing:
         from src.swiss.pairing import generate_bye_losses_for_late_entry
 
         players = create_test_players(8)
-        registrations = create_registrations(
-            base_tournament_data["tournament_id"], players
-        )
+        registrations = create_registrations(base_tournament_data["tournament_id"], players)
         config = {"standings_tiebreakers": ["omw", "gw", "ogw"]}
         all_matches = []
 
@@ -1071,8 +1252,7 @@ class TestFullTournamentPairing:
 
         # ROUND 2 - 7 players (1 dropped)
         round2 = pair_round(
-            registrations, all_matches, base_tournament_data["component"],
-            config, round_number=2
+            registrations, all_matches, base_tournament_data["component"], config, round_number=2
         )
         assert len(round2) == 4  # 3 matches + 1 bye
         bye_matches_r2 = [m for m in round2 if m.player2_id is None]
@@ -1127,8 +1307,7 @@ class TestFullTournamentPairing:
 
         # ROUND 3 - 8 active players (7 original + 1 late entry - 1 dropped)
         round3 = pair_round(
-            registrations, all_matches, base_tournament_data["component"],
-            config, round_number=3
+            registrations, all_matches, base_tournament_data["component"], config, round_number=3
         )
         assert len(round3) == 4  # 4 matches, no byes
 
@@ -1158,8 +1337,7 @@ class TestFullTournamentPairing:
         # Verify dropped player IS in standings (for record-keeping)
         # but has only 1 match played (from round 1)
         dropped_standing = next(
-            (s for s in final_standings if s.player.player_id == dropped_player_id),
-            None
+            (s for s in final_standings if s.player.player_id == dropped_player_id), None
         )
         assert dropped_standing is not None, "Dropped player should be in standings"
         assert dropped_standing.matches_played == 1, "Dropped player only played round 1"
@@ -1167,8 +1345,7 @@ class TestFullTournamentPairing:
 
         # Verify late entry is in standings (but with worse record due to bye losses)
         late_entry_standing = next(
-            (s for s in final_standings if s.player.player_id == late_player.id),
-            None
+            (s for s in final_standings if s.player.player_id == late_player.id), None
         )
         assert late_entry_standing is not None, "Late entry should be in standings"
         assert late_entry_standing.matches_played == 3, "Late entry: 2 bye losses + 1 real match"

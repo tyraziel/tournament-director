@@ -6,7 +6,6 @@ Validates that the generated OpenAPI specification is complete and valid.
 AIA EAI Hin R Claude Code [Sonnet 4.5] v1.0
 """
 
-import pytest
 from src.api.main import app
 
 
@@ -244,7 +243,9 @@ class TestOpenAPISchema:
         for path, methods in paths.items():
             for method, operation in methods.items():
                 if method in ["get", "post", "put", "delete", "patch"]:
-                    assert "description" in operation, f"{method.upper()} {path} missing description"
+                    assert "description" in operation, (
+                        f"{method.upper()} {path} missing description"
+                    )
                     assert len(operation["description"]) > 0
 
     def test_http_status_codes(self):
@@ -585,7 +586,8 @@ class TestOpenAPISchema:
         assert "422" in get_round["responses"]
 
         # POST /tournaments/{tournament_id}/rounds/{round_number}/complete - 200, 404, 400
-        complete_round = paths["/tournaments/{tournament_id}/rounds/{round_number}/complete"]["post"]
+        complete_path = "/tournaments/{tournament_id}/rounds/{round_number}/complete"
+        complete_round = paths[complete_path]["post"]
         assert "responses" in complete_round
         assert "200" in complete_round["responses"]
         assert "422" in complete_round["responses"]

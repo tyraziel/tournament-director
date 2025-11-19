@@ -11,7 +11,7 @@ from uuid import UUID, uuid4
 from fastapi import APIRouter, HTTPException, status
 
 from src.api.dependencies import DataLayerDep, PaginationDep
-from src.data.exceptions import NotFoundError, DuplicateError
+from src.data.exceptions import DuplicateError, NotFoundError
 from src.models.base import GameSystem
 from src.models.format import Format, FormatCreate, FormatUpdate
 
@@ -79,13 +79,12 @@ async def create_format(
     format_obj = Format(id=uuid4(), **format_data.model_dump())
 
     try:
-        created_format = await data_layer.formats.create(format_obj)
-        return created_format
+        return await data_layer.formats.create(format_obj)
     except DuplicateError as e:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail=str(e),
-        )
+        ) from None
 
 
 @router.get(
@@ -112,13 +111,12 @@ async def get_format(
         404: Format not found
     """
     try:
-        format_obj = await data_layer.formats.get_by_id(format_id)
-        return format_obj
+        return await data_layer.formats.get_by_id(format_id)
     except NotFoundError:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Format {format_id} not found",
-        )
+        ) from None
 
 
 @router.put(
@@ -156,19 +154,18 @@ async def update_format(
         updated_format = existing_format.model_copy(update=update_dict)
 
         # Save to data layer
-        result = await data_layer.formats.update(updated_format)
-        return result
+        return await data_layer.formats.update(updated_format)
 
     except NotFoundError:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Format {format_id} not found",
-        )
+        ) from None
     except DuplicateError as e:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail=str(e),
-        )
+        ) from None
 
 
 @router.delete(
@@ -196,7 +193,7 @@ async def delete_format(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Format {format_id} not found",
-        )
+        ) from None
 
 
 @router.get(

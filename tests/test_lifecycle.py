@@ -7,25 +7,20 @@ and automated tournament progression.
 AIA EAI Hin R Claude Code [Sonnet 4.5] v1.0
 """
 
-import pytest
 from datetime import datetime, timezone
 from uuid import uuid4
 
-from src.models.player import Player
-from src.models.tournament import Tournament, TournamentRegistration, RegistrationControl
-from src.models.format import Format
-from src.models.venue import Venue
-from src.models.match import Match, Round, Component
+import pytest
+
 from src.models.base import (
-    GameSystem,
-    BaseFormat,
-    TournamentStatus,
-    TournamentVisibility,
-    PlayerStatus,
-    ComponentType,
     ComponentStatus,
+    ComponentType,
+    PlayerStatus,
     RoundStatus,
+    TournamentStatus,
 )
+from src.models.match import Component, Match, Round
+from src.models.tournament import RegistrationControl, Tournament, TournamentRegistration
 
 
 class TestRoundAdvancement:
@@ -517,7 +512,12 @@ class TestTournamentStateMachine:
 
         # Advance past final round
         round4 = advance_to_next_round(
-            round3, component_id, tournament_id, tournament=tournament, component=component, max_rounds=3
+            round3,
+            component_id,
+            tournament_id,
+            tournament=tournament,
+            component=component,
+            max_rounds=3,
         )
 
         # Verify no next round created

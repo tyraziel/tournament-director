@@ -3,17 +3,16 @@
 AIA EAI Hin R Claude Code [Sonnet 4.5] v1.0
 """
 
-from typing import List, Optional
 from uuid import UUID
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.data.database.models import RoundModel
 from src.data.exceptions import DuplicateError, NotFoundError
 from src.data.interface import RoundRepository
-from src.data.database.models import RoundModel
-from src.models.match import Round
 from src.models.base import RoundStatus
+from src.models.match import Round
 
 
 class DatabaseRoundRepository(RoundRepository):
@@ -73,22 +72,26 @@ class DatabaseRoundRepository(RoundRepository):
 
         return self._to_pydantic(db_round)
 
-    async def list_by_tournament(self, tournament_id: UUID) -> List[Round]:
+    async def list_by_tournament(self, tournament_id: UUID) -> list[Round]:
         """List rounds for a tournament, ordered by component sequence and round number."""
-        stmt = select(RoundModel).where(
-            RoundModel.tournament_id == tournament_id
-        ).order_by(RoundModel.component_id, RoundModel.round_number)
+        stmt = (
+            select(RoundModel)
+            .where(RoundModel.tournament_id == tournament_id)
+            .order_by(RoundModel.component_id, RoundModel.round_number)
+        )
 
         result = await self.session.execute(stmt)
         db_rounds = result.scalars().all()
 
         return [self._to_pydantic(db_round) for db_round in db_rounds]
 
-    async def list_by_component(self, component_id: UUID) -> List[Round]:
+    async def list_by_component(self, component_id: UUID) -> list[Round]:
         """List rounds for a component, ordered by round number."""
-        stmt = select(RoundModel).where(
-            RoundModel.component_id == component_id
-        ).order_by(RoundModel.round_number)
+        stmt = (
+            select(RoundModel)
+            .where(RoundModel.component_id == component_id)
+            .order_by(RoundModel.round_number)
+        )
 
         result = await self.session.execute(stmt)
         db_rounds = result.scalars().all()
@@ -97,11 +100,10 @@ class DatabaseRoundRepository(RoundRepository):
 
     async def get_by_component_and_round_number(
         self, component_id: UUID, round_number: int
-    ) -> Optional[Round]:
+    ) -> Round | None:
         """Get round by component and round number. Returns None if not found."""
         stmt = select(RoundModel).where(
-            RoundModel.component_id == component_id,
-            RoundModel.round_number == round_number
+            RoundModel.component_id == component_id, RoundModel.round_number == round_number
         )
         result = await self.session.execute(stmt)
         db_round = result.scalar_one_or_none()

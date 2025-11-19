@@ -3,17 +3,16 @@
 AIA EAI Hin R Claude Code [Sonnet 4.5] v1.0
 """
 
-from typing import Any, Dict, List, Optional
 from uuid import UUID
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.data.database.models import ComponentModel
 from src.data.exceptions import DuplicateError, NotFoundError
 from src.data.interface import ComponentRepository
-from src.data.database.models import ComponentModel
+from src.models.base import ComponentStatus, ComponentType
 from src.models.match import Component
-from src.models.base import ComponentType, ComponentStatus
 
 
 class DatabaseComponentRepository(ComponentRepository):
@@ -67,11 +66,13 @@ class DatabaseComponentRepository(ComponentRepository):
 
         return self._to_pydantic(db_component)
 
-    async def list_by_tournament(self, tournament_id: UUID) -> List[Component]:
+    async def list_by_tournament(self, tournament_id: UUID) -> list[Component]:
         """List components for a tournament, ordered by sequence_order."""
-        stmt = select(ComponentModel).where(
-            ComponentModel.tournament_id == tournament_id
-        ).order_by(ComponentModel.sequence_order)
+        stmt = (
+            select(ComponentModel)
+            .where(ComponentModel.tournament_id == tournament_id)
+            .order_by(ComponentModel.sequence_order)
+        )
 
         result = await self.session.execute(stmt)
         db_components = result.scalars().all()
@@ -80,11 +81,11 @@ class DatabaseComponentRepository(ComponentRepository):
 
     async def get_by_tournament_and_sequence(
         self, tournament_id: UUID, sequence_order: int
-    ) -> Optional[Component]:
+    ) -> Component | None:
         """Get component by tournament and sequence order. Returns None if not found."""
         stmt = select(ComponentModel).where(
             ComponentModel.tournament_id == tournament_id,
-            ComponentModel.sequence_order == sequence_order
+            ComponentModel.sequence_order == sequence_order,
         )
         result = await self.session.execute(stmt)
         db_component = result.scalar_one_or_none()

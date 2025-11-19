@@ -4,7 +4,7 @@ AIA PAI Hin R Claude Code v1.0
 """
 
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Optional
+from typing import Any
 from uuid import UUID
 
 from src.models.auth import APIKey
@@ -27,15 +27,15 @@ class PlayerRepository(ABC):
         """Get player by ID. Raises NotFoundError if not found."""
 
     @abstractmethod
-    async def get_by_name(self, name: str) -> Optional[Player]:
+    async def get_by_name(self, name: str) -> Player | None:
         """Get player by name. Returns None if not found."""
 
     @abstractmethod
-    async def get_by_discord_id(self, discord_id: str) -> Optional[Player]:
+    async def get_by_discord_id(self, discord_id: str) -> Player | None:
         """Get player by Discord ID. Returns None if not found."""
 
     @abstractmethod
-    async def list_all(self, limit: Optional[int] = None, offset: int = 0) -> List[Player]:
+    async def list_all(self, limit: int | None = None, offset: int = 0) -> list[Player]:
         """List all players with optional pagination."""
 
     @abstractmethod
@@ -59,11 +59,11 @@ class VenueRepository(ABC):
         """Get venue by ID. Raises NotFoundError if not found."""
 
     @abstractmethod
-    async def get_by_name(self, name: str) -> Optional[Venue]:
+    async def get_by_name(self, name: str) -> Venue | None:
         """Get venue by name. Returns None if not found."""
 
     @abstractmethod
-    async def list_all(self, limit: Optional[int] = None, offset: int = 0) -> List[Venue]:
+    async def list_all(self, limit: int | None = None, offset: int = 0) -> list[Venue]:
         """List all venues with optional pagination."""
 
     @abstractmethod
@@ -87,15 +87,15 @@ class FormatRepository(ABC):
         """Get format by ID. Raises NotFoundError if not found."""
 
     @abstractmethod
-    async def get_by_name(self, name: str, game_system: Optional[str] = None) -> Optional[Format]:
+    async def get_by_name(self, name: str, game_system: str | None = None) -> Format | None:
         """Get format by name and optionally game system. Returns None if not found."""
 
     @abstractmethod
-    async def list_by_game_system(self, game_system: str) -> List[Format]:
+    async def list_by_game_system(self, game_system: str) -> list[Format]:
         """List all formats for a specific game system."""
 
     @abstractmethod
-    async def list_all(self, limit: Optional[int] = None, offset: int = 0) -> List[Format]:
+    async def list_all(self, limit: int | None = None, offset: int = 0) -> list[Format]:
         """List all formats with optional pagination."""
 
     @abstractmethod
@@ -119,23 +119,23 @@ class TournamentRepository(ABC):
         """Get tournament by ID. Raises NotFoundError if not found."""
 
     @abstractmethod
-    async def list_by_status(self, status: str) -> List[Tournament]:
+    async def list_by_status(self, status: str) -> list[Tournament]:
         """List tournaments by status."""
 
     @abstractmethod
-    async def list_by_venue(self, venue_id: UUID) -> List[Tournament]:
+    async def list_by_venue(self, venue_id: UUID) -> list[Tournament]:
         """List tournaments by venue."""
 
     @abstractmethod
-    async def list_by_format(self, format_id: UUID) -> List[Tournament]:
+    async def list_by_format(self, format_id: UUID) -> list[Tournament]:
         """List tournaments by format."""
 
     @abstractmethod
-    async def list_by_organizer(self, organizer_id: UUID) -> List[Tournament]:
+    async def list_by_organizer(self, organizer_id: UUID) -> list[Tournament]:
         """List tournaments by organizer (created_by)."""
 
     @abstractmethod
-    async def list_all(self, limit: Optional[int] = None, offset: int = 0) -> List[Tournament]:
+    async def list_all(self, limit: int | None = None, offset: int = 0) -> list[Tournament]:
         """List all tournaments with optional pagination."""
 
     @abstractmethod
@@ -159,19 +159,27 @@ class RegistrationRepository(ABC):
         """Get registration by ID. Raises NotFoundError if not found."""
 
     @abstractmethod
-    async def get_by_tournament_and_player(self, tournament_id: UUID, player_id: UUID) -> Optional[TournamentRegistration]:
+    async def get_by_tournament_and_player(
+        self, tournament_id: UUID, player_id: UUID
+    ) -> TournamentRegistration | None:
         """Get registration by tournament and player. Returns None if not found."""
 
     @abstractmethod
-    async def get_by_tournament_and_sequence_id(self, tournament_id: UUID, sequence_id: int) -> Optional[TournamentRegistration]:
+    async def get_by_tournament_and_sequence_id(
+        self, tournament_id: UUID, sequence_id: int
+    ) -> TournamentRegistration | None:
         """Get registration by tournament and sequence ID. Returns None if not found."""
 
     @abstractmethod
-    async def list_by_tournament(self, tournament_id: UUID, status: Optional[str] = None) -> List[TournamentRegistration]:
+    async def list_by_tournament(
+        self, tournament_id: UUID, status: str | None = None
+    ) -> list[TournamentRegistration]:
         """List registrations for a tournament, optionally filtered by status."""
 
     @abstractmethod
-    async def list_by_player(self, player_id: UUID, status: Optional[str] = None) -> List[TournamentRegistration]:
+    async def list_by_player(
+        self, player_id: UUID, status: str | None = None
+    ) -> list[TournamentRegistration]:
         """List registrations for a player, optionally filtered by status."""
 
     @abstractmethod
@@ -199,11 +207,13 @@ class ComponentRepository(ABC):
         """Get component by ID. Raises NotFoundError if not found."""
 
     @abstractmethod
-    async def list_by_tournament(self, tournament_id: UUID) -> List[Component]:
+    async def list_by_tournament(self, tournament_id: UUID) -> list[Component]:
         """List components for a tournament, ordered by sequence_order."""
 
     @abstractmethod
-    async def get_by_tournament_and_sequence(self, tournament_id: UUID, sequence_order: int) -> Optional[Component]:
+    async def get_by_tournament_and_sequence(
+        self, tournament_id: UUID, sequence_order: int
+    ) -> Component | None:
         """Get component by tournament and sequence order. Returns None if not found."""
 
     @abstractmethod
@@ -227,15 +237,17 @@ class RoundRepository(ABC):
         """Get round by ID. Raises NotFoundError if not found."""
 
     @abstractmethod
-    async def list_by_tournament(self, tournament_id: UUID) -> List[Round]:
+    async def list_by_tournament(self, tournament_id: UUID) -> list[Round]:
         """List rounds for a tournament, ordered by component sequence and round number."""
 
     @abstractmethod
-    async def list_by_component(self, component_id: UUID) -> List[Round]:
+    async def list_by_component(self, component_id: UUID) -> list[Round]:
         """List rounds for a component, ordered by round number."""
 
     @abstractmethod
-    async def get_by_component_and_round_number(self, component_id: UUID, round_number: int) -> Optional[Round]:
+    async def get_by_component_and_round_number(
+        self, component_id: UUID, round_number: int
+    ) -> Round | None:
         """Get round by component and round number. Returns None if not found."""
 
     @abstractmethod
@@ -259,19 +271,21 @@ class MatchRepository(ABC):
         """Get match by ID. Raises NotFoundError if not found."""
 
     @abstractmethod
-    async def list_by_tournament(self, tournament_id: UUID) -> List[Match]:
+    async def list_by_tournament(self, tournament_id: UUID) -> list[Match]:
         """List matches for a tournament, ordered by round number."""
 
     @abstractmethod
-    async def list_by_round(self, round_id: UUID) -> List[Match]:
+    async def list_by_round(self, round_id: UUID) -> list[Match]:
         """List matches for a round, ordered by table number."""
 
     @abstractmethod
-    async def list_by_component(self, component_id: UUID) -> List[Match]:
+    async def list_by_component(self, component_id: UUID) -> list[Match]:
         """List matches for a component, ordered by round and table number."""
 
     @abstractmethod
-    async def list_by_player(self, player_id: UUID, tournament_id: Optional[UUID] = None) -> List[Match]:
+    async def list_by_player(
+        self, player_id: UUID, tournament_id: UUID | None = None
+    ) -> list[Match]:
         """List matches for a player, optionally filtered by tournament."""
 
     @abstractmethod
@@ -295,11 +309,11 @@ class APIKeyRepository(ABC):
         """Get API key by ID. Raises NotFoundError if not found."""
 
     @abstractmethod
-    async def get_by_token(self, token: str) -> Optional[APIKey]:
+    async def get_by_token(self, token: str) -> APIKey | None:
         """Get API key by token value. Returns None if not found."""
 
     @abstractmethod
-    async def list_by_owner(self, player_id: UUID) -> List[APIKey]:
+    async def list_by_owner(self, player_id: UUID) -> list[APIKey]:
         """List all API keys for a player, ordered by created_at descending."""
 
     @abstractmethod
@@ -360,7 +374,7 @@ class DataLayer(ABC):
         """Access to API key repository."""
 
     @abstractmethod
-    async def seed_data(self, data: Dict[str, List[Dict[str, Any]]]) -> None:
+    async def seed_data(self, data: dict[str, list[dict[str, Any]]]) -> None:
         """Seed the data layer with test/demo data."""
 
     @abstractmethod
@@ -368,5 +382,5 @@ class DataLayer(ABC):
         """Clear all data from the data layer. Use with caution!"""
 
     @abstractmethod
-    async def health_check(self) -> Dict[str, Any]:
+    async def health_check(self) -> dict[str, Any]:
         """Perform health check and return status information."""

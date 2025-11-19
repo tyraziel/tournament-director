@@ -6,27 +6,41 @@ Follows TDD Red-Green-Refactor methodology.
 AIA EAI Hin R Claude Code [Sonnet 4.5] v1.0
 """
 
-import pytest
-import pytest_asyncio
 from datetime import datetime, timezone
 from uuid import uuid4
 
+import pytest
+import pytest_asyncio
+
 from src.data.database import DatabaseDataLayer
-from src.data.exceptions import NotFoundError, DuplicateError
-from src.models.player import Player
-from src.models.venue import Venue
+from src.data.exceptions import DuplicateError, NotFoundError
+from src.models.base import (
+    BaseFormat,
+    GameSystem,
+    PlayerStatus,
+    TournamentStatus,
+    TournamentVisibility,
+)
 from src.models.format import Format
-from src.models.base import GameSystem, BaseFormat
-from src.models.tournament import Tournament, TournamentRegistration, RegistrationControl
-from src.models.base import TournamentStatus, TournamentVisibility, PlayerStatus
+from src.models.player import Player
+from src.models.tournament import RegistrationControl, Tournament, TournamentRegistration
+from src.models.venue import Venue
 
 
 # Database URL fixtures for different databases
-@pytest.fixture(params=["sqlite", "postgresql"])  # Currently testing SQLite and PostgreSQL
+@pytest.fixture(params=["sqlite"])  # Currently testing SQLite only
 def database_url(request):
     """Provide database URLs for testing.
 
-    Currently testing: SQLite (in-memory) and PostgreSQL (via Unix socket)
+    Currently testing: SQLite (in-memory)
+
+    PostgreSQL Support:
+    -------------------
+    PostgreSQL testing is disabled by default (requires running PostgreSQL server).
+    To enable PostgreSQL tests:
+    1. Start PostgreSQL server with Unix socket at /tmp/pg_socket
+    2. Add "postgresql" to params above
+    3. Ensure database 'tournament_director' exists
 
     MySQL/MariaDB Support:
     ----------------------
@@ -46,9 +60,10 @@ def database_url(request):
     if request.param == "sqlite":
         # Use in-memory SQLite for fast testing
         return "sqlite+aiosqlite:///:memory:"
-    elif request.param == "postgresql":
+    if request.param == "postgresql":
         # PostgreSQL with Unix socket connection
         return "postgresql+asyncpg://postgres@/tournament_director?host=/tmp/pg_socket"
+    return None
     # TODO: Requires MySQL/MariaDB installation (not available in current environment)
     # elif request.param == "mysql":
     #     # MySQL 5.7+ via aiomysql
@@ -86,6 +101,7 @@ async def clean_data_layer(database_url):
 # Health Check Tests
 # ============================================================================
 
+
 @pytest.mark.asyncio
 async def test_database_health_check(data_layer):
     """Test database health check returns healthy status."""
@@ -120,6 +136,7 @@ async def test_database_initialization(database_url):
 # Player Repository Tests
 # ============================================================================
 
+
 @pytest.mark.asyncio
 async def test_player_create(clean_data_layer):
     """Test creating a player."""
@@ -128,7 +145,7 @@ async def test_player_create(clean_data_layer):
         name="Alice",
         discord_id="alice#1234",
         email="alice@example.com",
-        created_at=datetime.now(timezone.utc)
+        created_at=datetime.now(timezone.utc),
     )
 
     created = await clean_data_layer.players.create(player)
@@ -142,11 +159,7 @@ async def test_player_create(clean_data_layer):
 @pytest.mark.asyncio
 async def test_player_get_by_id(clean_data_layer):
     """Test retrieving a player by ID."""
-    player = Player(
-        id=uuid4(),
-        name="Bob",
-        created_at=datetime.now(timezone.utc)
-    )
+    player = Player(id=uuid4(), name="Bob", created_at=datetime.now(timezone.utc))
 
     await clean_data_layer.players.create(player)
     await clean_data_layer.commit()
@@ -185,10 +198,7 @@ async def test_player_duplicate_id(clean_data_layer):
 async def test_player_duplicate_discord_id(clean_data_layer):
     """Test creating player with duplicate Discord ID raises DuplicateError."""
     player1 = Player(
-        id=uuid4(),
-        name="Alice",
-        discord_id="alice#1234",
-        created_at=datetime.now(timezone.utc)
+        id=uuid4(), name="Alice", discord_id="alice#1234", created_at=datetime.now(timezone.utc)
     )
     await clean_data_layer.players.create(player1)
     await clean_data_layer.commit()
@@ -197,7 +207,7 @@ async def test_player_duplicate_discord_id(clean_data_layer):
         id=uuid4(),
         name="Bob",
         discord_id="alice#1234",  # Same Discord ID
-        created_at=datetime.now(timezone.utc)
+        created_at=datetime.now(timezone.utc),
     )
 
     with pytest.raises(DuplicateError):
@@ -221,10 +231,7 @@ async def test_player_get_by_name(clean_data_layer):
 async def test_player_get_by_discord_id(clean_data_layer):
     """Test retrieving player by Discord ID."""
     player = Player(
-        id=uuid4(),
-        name="Dave",
-        discord_id="dave#5678",
-        created_at=datetime.now(timezone.utc)
+        id=uuid4(), name="Dave", discord_id="dave#5678", created_at=datetime.now(timezone.utc)
     )
     await clean_data_layer.players.create(player)
     await clean_data_layer.commit()
@@ -287,7 +294,7 @@ async def test_player_update(clean_data_layer):
     player.name = "Eve Updated"
     player.email = "eve@example.com"
 
-    updated = await clean_data_layer.players.update(player)
+    await clean_data_layer.players.update(player)
     await clean_data_layer.commit()
 
     # Verify update
@@ -316,6 +323,7 @@ async def test_player_delete(clean_data_layer):
 # Venue Repository Tests
 # ============================================================================
 
+
 @pytest.mark.asyncio
 async def test_venue_create(clean_data_layer):
     """Test creating a venue."""
@@ -323,7 +331,7 @@ async def test_venue_create(clean_data_layer):
         id=uuid4(),
         name="Kitchen Table",
         address="123 Main St",
-        description="Casual kitchen table gaming"
+        description="Casual kitchen table gaming",
     )
 
     created = await clean_data_layer.venues.create(venue)
@@ -350,6 +358,7 @@ async def test_venue_get_by_name(clean_data_layer):
 # Format Repository Tests
 # ============================================================================
 
+
 @pytest.mark.asyncio
 async def test_format_create(clean_data_layer):
     """Test creating a format."""
@@ -359,7 +368,7 @@ async def test_format_create(clean_data_layer):
         game_system=GameSystem.MTG,
         base_format=BaseFormat.CONSTRUCTED,
         card_pool="Commons only",
-        match_structure="BO3"
+        match_structure="BO3",
     )
 
     created = await clean_data_layer.formats.create(fmt)
@@ -379,21 +388,21 @@ async def test_format_list_by_game_system(clean_data_layer):
             name="Pauper",
             game_system=GameSystem.MTG,
             base_format=BaseFormat.CONSTRUCTED,
-            card_pool="Commons only"
+            card_pool="Commons only",
         ),
         Format(
             id=uuid4(),
             name="Standard",
             game_system=GameSystem.MTG,
             base_format=BaseFormat.CONSTRUCTED,
-            card_pool="Standard legal"
+            card_pool="Standard legal",
         ),
         Format(
             id=uuid4(),
             name="Unlimited",
             game_system=GameSystem.POKEMON,
             base_format=BaseFormat.CONSTRUCTED,
-            card_pool="All cards"
+            card_pool="All cards",
         ),
     ]
 
@@ -411,6 +420,7 @@ async def test_format_list_by_game_system(clean_data_layer):
 # Tournament Repository Tests
 # ============================================================================
 
+
 @pytest.mark.asyncio
 async def test_tournament_create(clean_data_layer):
     """Test creating a tournament with RegistrationControl."""
@@ -426,7 +436,7 @@ async def test_tournament_create(clean_data_layer):
         name="Pauper",
         game_system=GameSystem.MTG,
         base_format=BaseFormat.CONSTRUCTED,
-        card_pool="Commons only"
+        card_pool="Commons only",
     )
     await clean_data_layer.formats.create(fmt)
     await clean_data_layer.commit()
@@ -441,7 +451,7 @@ async def test_tournament_create(clean_data_layer):
         format_id=fmt.id,
         venue_id=venue.id,
         created_by=player.id,
-        created_at=datetime.now(timezone.utc)
+        created_at=datetime.now(timezone.utc),
     )
 
     created = await clean_data_layer.tournaments.create(tournament)
@@ -467,7 +477,7 @@ async def test_tournament_list_by_status(clean_data_layer):
         name="Format",
         game_system=GameSystem.MTG,
         base_format=BaseFormat.CONSTRUCTED,
-        card_pool="All"
+        card_pool="All",
     )
     await clean_data_layer.formats.create(fmt)
     await clean_data_layer.commit()
@@ -483,7 +493,7 @@ async def test_tournament_list_by_status(clean_data_layer):
             format_id=fmt.id,
             venue_id=venue.id,
             created_by=player.id,
-            created_at=datetime.now(timezone.utc)
+            created_at=datetime.now(timezone.utc),
         )
         for i in range(4)
     ]
@@ -492,7 +502,9 @@ async def test_tournament_list_by_status(clean_data_layer):
         await clean_data_layer.tournaments.create(t)
     await clean_data_layer.commit()
 
-    draft_tournaments = await clean_data_layer.tournaments.list_by_status(TournamentStatus.DRAFT.value)
+    draft_tournaments = await clean_data_layer.tournaments.list_by_status(
+        TournamentStatus.DRAFT.value
+    )
 
     assert len(draft_tournaments) == 2
 
@@ -500,6 +512,7 @@ async def test_tournament_list_by_status(clean_data_layer):
 # ============================================================================
 # Registration Repository Tests
 # ============================================================================
+
 
 @pytest.mark.asyncio
 async def test_registration_create(clean_data_layer):
@@ -519,7 +532,7 @@ async def test_registration_create(clean_data_layer):
         name="Format",
         game_system=GameSystem.MTG,
         base_format=BaseFormat.CONSTRUCTED,
-        card_pool="All"
+        card_pool="All",
     )
     await clean_data_layer.formats.create(fmt)
 
@@ -532,7 +545,7 @@ async def test_registration_create(clean_data_layer):
         format_id=fmt.id,
         venue_id=venue.id,
         created_by=to_player.id,
-        created_at=datetime.now(timezone.utc)
+        created_at=datetime.now(timezone.utc),
     )
     await clean_data_layer.tournaments.create(tournament)
     await clean_data_layer.commit()
@@ -544,7 +557,7 @@ async def test_registration_create(clean_data_layer):
         player_id=player.id,
         sequence_id=1,
         status=PlayerStatus.ACTIVE,
-        registration_time=datetime.now(timezone.utc)
+        registration_time=datetime.now(timezone.utc),
     )
 
     created = await clean_data_layer.registrations.create(reg)
@@ -574,7 +587,7 @@ async def test_registration_get_next_sequence_id(clean_data_layer):
         name="Format",
         game_system=GameSystem.MTG,
         base_format=BaseFormat.CONSTRUCTED,
-        card_pool="All"
+        card_pool="All",
     )
     await clean_data_layer.formats.create(fmt)
 
@@ -587,7 +600,7 @@ async def test_registration_get_next_sequence_id(clean_data_layer):
         format_id=fmt.id,
         venue_id=venue.id,
         created_by=to_player.id,
-        created_at=datetime.now(timezone.utc)
+        created_at=datetime.now(timezone.utc),
     )
     await clean_data_layer.tournaments.create(tournament)
     await clean_data_layer.commit()
@@ -603,7 +616,7 @@ async def test_registration_get_next_sequence_id(clean_data_layer):
         player_id=player1.id,
         sequence_id=1,
         status=PlayerStatus.ACTIVE,
-        registration_time=datetime.now(timezone.utc)
+        registration_time=datetime.now(timezone.utc),
     )
     await clean_data_layer.registrations.create(reg1)
     await clean_data_layer.commit()
@@ -631,7 +644,7 @@ async def test_registration_duplicate_player(clean_data_layer):
         name="Format",
         game_system=GameSystem.MTG,
         base_format=BaseFormat.CONSTRUCTED,
-        card_pool="All"
+        card_pool="All",
     )
     await clean_data_layer.formats.create(fmt)
 
@@ -644,7 +657,7 @@ async def test_registration_duplicate_player(clean_data_layer):
         format_id=fmt.id,
         venue_id=venue.id,
         created_by=to_player.id,
-        created_at=datetime.now(timezone.utc)
+        created_at=datetime.now(timezone.utc),
     )
     await clean_data_layer.tournaments.create(tournament)
     await clean_data_layer.commit()
@@ -656,7 +669,7 @@ async def test_registration_duplicate_player(clean_data_layer):
         player_id=player.id,
         sequence_id=1,
         status=PlayerStatus.ACTIVE,
-        registration_time=datetime.now(timezone.utc)
+        registration_time=datetime.now(timezone.utc),
     )
     await clean_data_layer.registrations.create(reg1)
     await clean_data_layer.commit()
@@ -668,7 +681,7 @@ async def test_registration_duplicate_player(clean_data_layer):
         player_id=player.id,  # Same player!
         sequence_id=2,
         status=PlayerStatus.ACTIVE,
-        registration_time=datetime.now(timezone.utc)
+        registration_time=datetime.now(timezone.utc),
     )
 
     with pytest.raises(DuplicateError):
@@ -679,28 +692,16 @@ async def test_registration_duplicate_player(clean_data_layer):
 # Seed Data Test
 # ============================================================================
 
+
 @pytest.mark.asyncio
 async def test_seed_data(clean_data_layer):
     """Test seeding data from dictionary."""
     seed_data = {
         "players": [
-            {
-                "id": uuid4(),
-                "name": "Alice",
-                "created_at": datetime.now(timezone.utc)
-            },
-            {
-                "id": uuid4(),
-                "name": "Bob",
-                "created_at": datetime.now(timezone.utc)
-            }
+            {"id": uuid4(), "name": "Alice", "created_at": datetime.now(timezone.utc)},
+            {"id": uuid4(), "name": "Bob", "created_at": datetime.now(timezone.utc)},
         ],
-        "venues": [
-            {
-                "id": uuid4(),
-                "name": "Kitchen Table"
-            }
-        ]
+        "venues": [{"id": uuid4(), "name": "Kitchen Table"}],
     }
 
     await clean_data_layer.seed_data(seed_data)
