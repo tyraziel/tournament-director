@@ -27,14 +27,14 @@ class DatabasePlayerRepository(PlayerRepository):
         # Check for duplicate ID
         existing = await self.session.get(PlayerModel, player.id)
         if existing:
-            raise DuplicateError(f"Player with ID {player.id} already exists")
+            raise DuplicateError("Player", "id", player.id)
 
         # Check for duplicate discord_id
         if player.discord_id:
             stmt = select(PlayerModel).where(PlayerModel.discord_id == player.discord_id)
             result = await self.session.execute(stmt)
             if result.scalar_one_or_none():
-                raise DuplicateError(f"Player with Discord ID {player.discord_id} already exists")
+                raise DuplicateError("Player", "discord_id", player.discord_id)
 
         # Create model from Pydantic
         db_player = PlayerModel(
@@ -54,7 +54,7 @@ class DatabasePlayerRepository(PlayerRepository):
         """Get player by ID. Raises NotFoundError if not found."""
         db_player = await self.session.get(PlayerModel, player_id)
         if not db_player:
-            raise NotFoundError(f"Player with ID {player_id} not found")
+            raise NotFoundError("Player", player_id)
 
         return Player(
             id=db_player.id,
@@ -122,7 +122,7 @@ class DatabasePlayerRepository(PlayerRepository):
         """Update an existing player."""
         db_player = await self.session.get(PlayerModel, player.id)
         if not db_player:
-            raise NotFoundError(f"Player with ID {player.id} not found")
+            raise NotFoundError("Player", player.id)
 
         # Update fields
         db_player.name = player.name
@@ -138,7 +138,7 @@ class DatabasePlayerRepository(PlayerRepository):
         """Delete a player. Raises NotFoundError if not found."""
         db_player = await self.session.get(PlayerModel, player_id)
         if not db_player:
-            raise NotFoundError(f"Player with ID {player_id} not found")
+            raise NotFoundError("Player", player_id)
 
         await self.session.delete(db_player)
         await self.session.flush()

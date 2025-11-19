@@ -41,7 +41,7 @@ class DatabaseRegistrationRepository(RegistrationRepository):
         # Check for duplicate ID
         existing = await self.session.get(TournamentRegistrationModel, registration.id)
         if existing:
-            raise DuplicateError(f"Registration with ID {registration.id} already exists")
+            raise DuplicateError("TournamentRegistration", "id", registration.id)
 
         # Check for duplicate player in tournament
         stmt = select(TournamentRegistrationModel).where(
@@ -51,7 +51,9 @@ class DatabaseRegistrationRepository(RegistrationRepository):
         result = await self.session.execute(stmt)
         if result.scalar_one_or_none():
             raise DuplicateError(
-                f"Player {registration.player_id} already registered for tournament {registration.tournament_id}"
+                "TournamentRegistration",
+                "player_id",
+                f"{registration.player_id} in tournament {registration.tournament_id}"
             )
 
         db_reg = TournamentRegistrationModel(
